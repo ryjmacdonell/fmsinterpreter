@@ -1,0 +1,9 @@
+# Python byte-compiled files
+__pycache__/
+*.py[cod]
+
+# Setup related files
+dist/
+build/
+*.egg
+*.egg-info/

@@ -1,0 +1,67 @@
+#!/usr/bin/env python
+"""
+Command line script for getting and plotting adiabatic populations.
+"""
+import os
+import numpy as np
+import matplotlib.pyplot as plt
+from fmsinterpreter import populations
+from fmsinterpreter import fileio
+
+
+def main():
+    """The main population plot routine."""
+    inp = dict(
+        states = [0, 1, 2],
+        fms_time_increment = 100,
+        time_conv = 0.02418884326505,
+        tmin = 0.0,
+        tmax = 1000.0,
+        directory_stem = '../seed.*',
+        trajectory_files = '../seed.*/TrajDump.*',
+        amplitude_data_name = 'pop.dat',
+        amplitude_plot_name = 'pop.pdf',
+        fit_function = None,
+        p0 = [10, 1, 50],
+        fit_data_name = 'pop.fit',
+        fit_plot_name = None
+               )
+    fileio.cfg_update(inp, 'pop.inp')
+
+    # get number of seeds
+    nseed = len(fileio.get_fnames(inp['directory_stem']))
+
+    # get trajectory filenames
+    traj_fnames = fileio.get_fnames(inp['trajectory_files'])
+
+    # set up time range
+    time = np.arange(inp['tmin']/inp['time_conv'],
+                     inp['tmax']/inp['time_conv'] + inp['fms_time_increment'],
+                     inp['fms_time_increment'])
+
+    # read the amplitudes
+    amplitude = populations.read_amps(traj_fnames, time, inp['states']) / nseed
+    fileio.write_dat(inp['amplitude_data_name'], amplitude,
+                     labels=['Time/fs', 'S0', 'S1', 'S2'])
+
+    # fit the amplitudes
+    if inp['fit_function'] is not None:
+        ff = inp['fit_function']
+        opt, err = populations.fit_function(ff, time, amplitude, inp['p0'],
+                                            time_conv=inp['time_conv'])
+        populations.write_fit(ff, opt, err, inp['fit_data_name'])
+        if inp['fit_plot_name'] is not None:
+            figure, axis = plt.subplots()
+            axis = plot_fit(axis, ff, time, amplitude, opt)
+            plt.savefig(inp['fit_plot_name'], bbox_inches='tight')
+
+    # plot the amplitudes
+    if inp['amplitude_plot_name'] is not None:
+        figure, axis = plt.subplots()
+        axis = populations.plot_amps(axis, time, amplitude, inp['states'],
+                                     time_conv=inp['time_conv'])
+        plt.savefig(inp['amplitude_plot_name'], bbox_inches='tight')
+
+
+if __name__ == '__main__':
+    main()
