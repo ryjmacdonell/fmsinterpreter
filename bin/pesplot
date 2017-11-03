@@ -12,9 +12,19 @@ from fmsinterpreter import potentials
 def main():
     """The main pesplot routine."""
     # read in the input file
-    inp = dict(states = None, infname = 'nrg.out', plotorder = None,
-               gwid = 1, gsep = 1, lblrot = 90, maxener = None,
-               mine = None, econv = 27.21138505, outfname = 'pes.pdf')
+    inp = dict(
+        states = None,
+        infname = 'nrg.out',
+        plotorder = None,
+        gwid = 1,
+        gsep = 1,
+        lblrot = 90,
+        maxener = None,
+        minener = None,
+        econv = 27.21138505,
+        data_name = 'pes.dat',
+        plot_name = 'pes.pdf'
+               )
     if os.path.exists('pes.inp'):
         inp.update(fileio.read_cfg('pes.inp'))
 
@@ -24,14 +34,15 @@ def main():
     # reorder indices and convert energies
     labels, energies = potentials.conv_nrg(labels, energies,
                                            order=inp['plotorder'],
-                                           conv=inp['econv'], base=inp['mine'])
+                                           conv=inp['econv'],
+                                           base=inp['minener'])
 
     # plot the potential energy surface points
     fig, axis = plt.subplots()
     axis = potentials.plot_nrg(axis, labels, energies, wid=inp['gwid'],
                                sep=inp['gsep'], rot=inp['lblrot'],
                                maxe=inp['maxener'])
-    plt.savefig(inp['outfname'], bbox_inches='tight')
+    plt.savefig(inp['plot_name'], bbox_inches='tight')
 
 
 if __name__ == '__main__':

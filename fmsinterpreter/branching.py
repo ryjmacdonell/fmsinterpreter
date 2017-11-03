@@ -6,7 +6,7 @@ import os
 import numpy as np
 from geomtools import molecule
 from geomtools import kabsch
-import fileio as fileio
+from fmsinterpreter import fileio
 
 
 def pop_estim(fnamelist):

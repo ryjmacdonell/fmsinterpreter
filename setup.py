@@ -22,7 +22,7 @@ setup(
     license='MIT',
     packages=find_packages(),
     scripts=['bin/branchget', 'bin/contourplot', 'bin/denplot',
-             'bin/pesplot', 'bin/plothist', 'bin/popplot'],
+             'bin/histplot', 'bin/pesplot', 'bin/popplot'],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',

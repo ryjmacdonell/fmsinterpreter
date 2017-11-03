@@ -71,9 +71,9 @@ def read_cfg(fname, reqvars=[]):
 def cfg_update(defdict, fname, reqvars=[]):
     """Updates a dictionary of default variables with values from
     a configuration file."""
-     if os.path.exists(fname):
+    if os.path.exists(fname):
         defdict.update(read_cfg(fname))
-     elif reqvars != []:
+    elif reqvars != []:
         raise KeyError('Missing required input variables')
 
 
@@ -90,11 +90,16 @@ def get_fnames(matchex):
     return fnames
 
 
+def read_dat(fname, labelrow=1, labelcol=0):
+    """Reads an array of data from an input file."""
+    pass
+
+
 def write_dat(fname, data, labels=None, charwid=10, decwid=4):
     """Writes an array of data to an output file."""
     with open(fname, 'w') as f:
         if labels is not None:
-            f.write(''.join(['{:{w}s}'.format(lbl, w=charwid) for
+            f.write(''.join(['{:>{w}s}'.format(lbl, w=charwid) for
                              lbl in labels]) + '\n')
         for line in data:
             f.write(''.join(['{:{w}.{d}f}'.format(num, w=charwid, d=decwid) for

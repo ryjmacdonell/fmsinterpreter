@@ -5,7 +5,7 @@ surface relative to a given minimum energy.
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-import fileio as fileio
+from fmsinterpreter import fileio
 
 
 def read_nrg(fname):

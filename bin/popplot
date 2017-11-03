@@ -22,7 +22,7 @@ def main():
         amplitude_data_name = 'pop.dat',
         amplitude_plot_name = 'pop.pdf',
         fit_function = None,
-        p0 = [10, 1, 50],
+        p0 = [10, 50],
         fit_data_name = 'pop.fit',
         fit_plot_name = None
                )
@@ -41,25 +41,29 @@ def main():
 
     # read the amplitudes
     amplitude = populations.read_amps(traj_fnames, time, inp['states']) / nseed
-    fileio.write_dat(inp['amplitude_data_name'], amplitude,
+    fileio.write_dat(inp['amplitude_data_name'],
+                     np.vstack((time * inp['time_conv'], amplitude)).T,
                      labels=['Time/fs', 'S0', 'S1', 'S2'])
 
     # fit the amplitudes
     if inp['fit_function'] is not None:
         ff = inp['fit_function']
-        opt, err = populations.fit_function(ff, time, amplitude, inp['p0'],
-                                            time_conv=inp['time_conv'])
+        examp = 1 - amplitude[0]
+        examp = (examp - min(examp)) / (max(examp) - min(examp))
+        opt, err = populations.fit_function(ff, time, examp, inp['p0'],
+                                            tconv=inp['time_conv'])
         populations.write_fit(ff, opt, err, inp['fit_data_name'])
         if inp['fit_plot_name'] is not None:
             figure, axis = plt.subplots()
-            axis = plot_fit(axis, ff, time, amplitude, opt)
+            axis = populations.plot_fit(axis, ff, time, examp, opt,
+                                        tconv=inp['time_conv'])
             plt.savefig(inp['fit_plot_name'], bbox_inches='tight')
 
     # plot the amplitudes
     if inp['amplitude_plot_name'] is not None:
         figure, axis = plt.subplots()
         axis = populations.plot_amps(axis, time, amplitude, inp['states'],
-                                     time_conv=inp['time_conv'])
+                                     tconv=inp['time_conv'])
         plt.savefig(inp['amplitude_plot_name'], bbox_inches='tight')
 
 

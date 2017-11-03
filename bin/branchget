@@ -29,7 +29,7 @@ def main():
     matched = branching.branching(ref_fnames, test_fnames, inp['states'])
 
     # output matched geometries and summary file
-    outdir = 's{:d}s{:d}'.format(*inp['states'])
+    outdir = 'branch_s{:d}s{:d}'.format(*inp['states'])
     if not os.path.exists(outdir):
         os.makedirs(outdir)
     else:

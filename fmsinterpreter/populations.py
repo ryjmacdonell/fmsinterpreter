@@ -7,7 +7,7 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-import fileio as fileio
+from fmsinterpreter import fileio
 
 
 def read_amps(fnames, times, states):
@@ -47,16 +47,17 @@ def plot_amps(ax, times, amps, states, tconv=1.):
     return ax
 
 
-def fit_function(func, times, amps, p0, tconv=1.):
+def fit_function(func, times, decay, p0, tconv=1.):
     """Fits amplitudes to a given exponential decay function.
 
     For now, this is just fitting the return to the ground state. With
     some sort of string parsing it could be changed to accept any
     state or combination of states (e.g. 'S1 + S2').
     """
-    decay = 1 - amps[0]
+    #decay = 1 - amps[0]
+    #decay = (decay - min(decay)) / (max(decay) - min(decay))
     t = times * tconv
-    popt, pcov = curve_fit(locals()['func'], t, decay, p0=p0)
+    popt, pcov = curve_fit(globals()[func], t, decay, p0=p0)
     perr = np.sqrt(np.diag(pcov))
 
     return popt, perr
@@ -68,7 +69,7 @@ def write_fit(func, popt, perr, outfname):
     This should be generalized to accept more than one set of fit values.
     """
     if func == 'exp_func':
-        fitvals = ['t0', 'amp1', 'tau1']
+        fitvals = ['t0', 'tau1']
     elif func == 'biexp_func':
         fitvals = ['t0', 'amp1', 'tau1', 'amp2', 'tau2']
     elif func == 'triexp_func':
@@ -76,30 +77,31 @@ def write_fit(func, popt, perr, outfname):
 
     with open(outfname, 'w') as f:
         f.write('Curve  ')
-        f.write(''.join(['{10s}'.format(fv) for fv in fitvals]) + '\n')
+        f.write(''.join(['{:>10s}'.format(fv) for fv in fitvals]) + '\n')
         f.write('1-S0   ')
-        f.write(''.join(['{10.4f}'.format(p) for p in popt]) + '\n')
+        f.write(''.join(['{:10.4f}'.format(p) for p in popt]) + '\n')
         f.write('Error  ')
-        f.write(''.join(['{10.4f}'.format(p) for p in perr]) + '\n')
+        f.write(''.join(['{:10.4f}'.format(p) for p in perr]) + '\n')
 
 
-def plot_fit(ax, func, times, amps, popt):
+def plot_fit(ax, func, times, decay, popt, tconv=1.):
     """Plots the fit results for comparison to the raw data.
 
     This should be generalized to accept more than one set of fit values.
     """
-    ax.plot(times, amps, 'k-')
-    ax.plot(times, locals()['func'](times, *popt), 'r-')
+    t = times * tconv
+    ax.plot(t, decay, 'k-')
+    ax.plot(t, globals()[func](t, *popt), 'r-')
     ax.set_ylim(0, 1)
-    ax.set_xlabel('1-S0 Amplitude')
-    ax.set_ylabel('Time / fs')
+    ax.set_xlabel('Time / fs')
+    ax.set_ylabel('1-S0 Amplitude')
 
     return ax
 
 
-def exp_func(x, x0, a1, b):
+def exp_func(x, x0, b):
     """Returns an exponential function for curve fitting purposes."""
-    return a1 * np.exp(-(x - x0) / b)
+    return np.exp(-(x - x0) / b)
 
 
 def biexp_func(x, x0, a1, b1, a2, b2):
