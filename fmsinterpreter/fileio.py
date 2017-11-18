@@ -92,7 +92,9 @@ def get_fnames(matchex):
 
 def read_dat(fname, labelrow=1, labelcol=0):
     """Reads an array of data from an input file."""
-    pass
+    for i in range(labelrow):
+        labels = np.readline().split()
+    return labels, np.loadtxt(fname, skiprows=labelrow)
 
 
 def write_dat(fname, data, labels=None, charwid=10, decwid=4):
