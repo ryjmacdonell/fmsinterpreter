@@ -1,1 +1,11 @@
 #!/usr/bin/python
+from fmsinterpreter import default
+
+
+def main():
+    inp = default.histplot
+    fileio.cfg_update(inp, 'hist.inp')
+
+
+if __name__ == '__main__':
+    main()

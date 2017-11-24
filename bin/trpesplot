@@ -3,8 +3,8 @@ from fmsinterpreter import default
 
 
 def main():
-    inp = default.contourplot
-    fileio.cfg_update(inp, 'contour.inp')
+    inp = default.trpesplot
+    fileio.cfg_update(inp, 'trpes.inp')
 
 
 if __name__ == '__main__':

@@ -1,1 +1,11 @@
 #!/usr/bin/python
+from fmsinterpreter import default
+
+
+def main():
+    inp = default.denplot
+    fileio.cfg_update(inp, 'den.inp')
+
+
+if __name__ == '__main__':
+    main()

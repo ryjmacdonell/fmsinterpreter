@@ -30,6 +30,8 @@ denplot = dict()
 
 histplot = dict()
 
+trpesplot = dict()
+
 pesplot = dict(
     states = None,
     infname = 'nrg.out',

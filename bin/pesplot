@@ -4,29 +4,17 @@ Command line script for plotting critical points on the potential energy
 surface.
 """
 import os
-import matplotlib.pyplot as plt
 from fmsinterpreter import fileio
 from fmsinterpreter import potentials
+from fmsinterpreter import default
+from fmsinterpreter import plot
 
 
 def main():
     """The main pesplot routine."""
     # read in the input file
-    inp = dict(
-        states = None,
-        infname = 'nrg.out',
-        plotorder = None,
-        gwid = 1,
-        gsep = 1,
-        lblrot = 90,
-        maxener = None,
-        minener = None,
-        econv = 27.21138505,
-        data_name = 'pes.dat',
-        plot_name = 'pes.pdf'
-               )
-    if os.path.exists('pes.inp'):
-        inp.update(fileio.read_cfg('pes.inp'))
+    inp = default.pesplot
+    fileio.cfg_update(inp, 'pes.inp')
 
     # read in the energy data
     labels, energies = potentials.read_nrg(inp['infname'])
@@ -38,11 +26,10 @@ def main():
                                            base=inp['minener'])
 
     # plot the potential energy surface points
-    fig, axis = plt.subplots()
-    axis = potentials.plot_nrg(axis, labels, energies, wid=inp['gwid'],
-                               sep=inp['gsep'], rot=inp['lblrot'],
-                               maxe=inp['maxener'])
-    plt.savefig(inp['plot_name'], bbox_inches='tight')
+    fig, ax = plot.energyplot(labels, energies, wid=inp['gwid'],
+                              sep=inp['gsep'], rot=inp['lblrot'],
+                              maxe=inp['maxener'])
+    fig.savefig(inp['plot_name'], bbox_inches='tight')
 
 
 if __name__ == '__main__':

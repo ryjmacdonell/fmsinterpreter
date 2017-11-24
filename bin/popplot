@@ -4,28 +4,15 @@ Command line script for getting and plotting adiabatic populations.
 """
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 from fmsinterpreter import populations
 from fmsinterpreter import fileio
+from fmsinterpreter import default
+from fmsinterpreter import plot
 
 
 def main():
     """The main population plot routine."""
-    inp = dict(
-        states = [0, 1, 2],
-        fms_time_increment = 100,
-        time_conv = 0.02418884326505,
-        tmin = 0.0,
-        tmax = 1000.0,
-        directory_stem = '../seed.*',
-        trajectory_files = '../seed.*/TrajDump.*',
-        amplitude_data_name = 'pop.dat',
-        amplitude_plot_name = 'pop.pdf',
-        fit_function = None,
-        p0 = [10, 50],
-        fit_data_name = 'pop.fit',
-        fit_plot_name = None
-               )
+    inp = default.popplot
     fileio.cfg_update(inp, 'pop.inp')
 
     # get number of seeds
@@ -41,9 +28,11 @@ def main():
 
     # read the amplitudes
     amplitude = populations.read_amps(traj_fnames, time, inp['states']) / nseed
+
+    # write to a data file
     fileio.write_dat(inp['amplitude_data_name'],
                      np.vstack((time * inp['time_conv'], amplitude)).T,
-                     labels=['Time/fs', 'S0', 'S1', 'S2'])
+                     labels=['Time/fs'] + ['S'+str(i) for i in inp['states']])
 
     # fit the amplitudes
     if inp['fit_function'] is not None:
@@ -54,17 +43,23 @@ def main():
                                             tconv=inp['time_conv'])
         populations.write_fit(ff, opt, err, inp['fit_data_name'])
         if inp['fit_plot_name'] is not None:
-            figure, axis = plt.subplots()
-            axis = populations.plot_fit(axis, ff, time, examp, opt,
-                                        tconv=inp['time_conv'])
-            plt.savefig(inp['fit_plot_name'], bbox_inches='tight')
+            t = time*inp['time_conv']
+            decay = np.array([examp, getattr(populations, ff)(t, *opt)])
+            fig, ax = plot.lineplot(t, decay.T, xlabel='Time / fs',
+                                    ylabel='1-S0 Amplitude',
+                                    xlim=(min(t), max(t)), ylim=(0,1),
+                                    legend=['raw data', ff+' fit'])
+            fig.savefig(inp['fit_plot_name'], bbox_inches='tight')
 
     # plot the amplitudes
     if inp['amplitude_plot_name'] is not None:
-        figure, axis = plt.subplots()
-        axis = populations.plot_amps(axis, time, amplitude, inp['states'],
-                                     tconv=inp['time_conv'])
-        plt.savefig(inp['amplitude_plot_name'], bbox_inches='tight')
+        labels = ['S'+str(i) for i in inp['states']]
+        fig, ax = plot.lineplot(time*inp['time_conv'], amplitude.T,
+                                xlabel='Time / fs',
+                                ylabel='Adiabatic population',
+                                xlim='range', ylim=(0,1),
+                                legend=labels)
+        fig.savefig(inp['amplitude_plot_name'], bbox_inches='tight')
 
 
 if __name__ == '__main__':

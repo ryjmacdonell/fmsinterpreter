@@ -54,7 +54,7 @@ def read_cfg(fname, reqvars=[]):
     # remove spaces and comments and get inputs
     lines = [ln.partition('#')[0] for ln in lines]
     for ln in lines:
-        if ln != '\n':
+        if ln not in ['\n', '']:
             vv = [string.strip() for string in ln.split('=', 1)]
             if len(vv) < 2:
                 raise ValueError('Variables must be set by \'=\'')

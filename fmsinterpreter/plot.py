@@ -1,0 +1,169 @@
+"""
+General plotting routines for the FMS scripts.
+
+This should be a stand-alone module which handles all calls to
+matplotlib. The Figure object can be used to handle multiple
+plots on a single or multiple canvases.
+"""
+import numpy as np
+import matplotlib.pyplot as plt
+from cycler import cycler
+# if black/white is set...
+plt.rc('axes', prop_cycle=(cycler('color', ['k', 'k', 'k', 'k']) +
+                           cycler('linestyle', ['-', '--', ':', '-.'])))
+
+
+def Figure(object):
+    """An object which handles matplotlib objects needed for figures."""
+    def __init__(self, subplots=(1,1), **kwargs):
+        self.subplots = subplots
+        self.fig, axarr = plt.subplots(*subplots, **kwargs)
+        self.axarr = np.atleast_2d(axarr)
+
+        # get array of subplot indices
+        max0, max1 = subplots
+        inds = np.mgrid[:max0, :max1]
+        inds = np.rollaxis(inds, 0, 3)
+        self.inds = inds.reshape((max0*max1, 2))
+
+    def scatter(self, x, y, isub=(0,0), **kwargs):
+        """Plots a scatter plot of x and y positions in the subplot
+        position isub."""
+        ax = self.axarr[isub[0], isub[1]]
+        ax.scatter(x, y, **kwargs)
+
+    def heatmap(self, x, y, z, isub=(0,0), **kwargs):
+        """Plots a heatmap of z vs. x and y in the subplot position isub."""
+        ax = self.axarr[isub[0], isub[1]]
+        ax.pcolormesh(x, y, z, **kwargs)
+
+    def lineplot(self, x, y, isub=(0,0), **kwargs):
+        """Plots a line from data y vs. x in the subplot position isub."""
+        ax = self.axarr[isub[0], isub[1]]
+        ax.plot(x, y, **kwargs)
+
+    def set_xlabel(self, label, isub=None):
+        """Sets the x-axis label on subplot(s) in position isub. If no isub
+        is given, the label is set for all subplots."""
+        for i in _get_ind(isub):
+            ax = self.axarr[i[0], i[1]]
+            ax.set_xlabel(label)
+
+    def set_ylabel(self, label, isub=None):
+        """Sets the y-axis label on subplot(s) in position isub. If no isub
+        is given, the label is set for all subplots."""
+        for i in _get_ind(isub):
+            ax = self.axarr[i[0], i[1]]
+            ax.set_xlabel(label)
+
+    def set_xlim(self, lim, isub=None):
+        """Sets the x-axis limit on subplot(s) in position isub. If no isub
+        is given, the label is set for all subplots."""
+        for i in _get_ind(isub):
+            ax = self.axarr[i[0], i[1]]
+            ax.set_xlim(lim)
+
+    def set_ylim(self, lim, isub=None):
+        """Sets the y-axis limit on subplot(s) in position isub. If no isub
+        is given, the label is set for all subplots."""
+        for i in _get_ind(isub):
+            ax = self.axarr[i[0], i[1]]
+            ax.set_ylim(lim)
+
+    def set_legend(self, labels, isub=None):
+        """Sets the legend labels on subplots(s) in position isub. If no isub
+        is given, the label is set for all subplots.
+
+        In the future, isub=None default behaviour should set a legend
+        outside of all subplots.
+        """
+        for i in _get_ind(isub):
+            ax = self.axarr[i[0], i[1]]
+            ax.set_legend(labels, loc='best')
+
+    def _get_ind(self, ind):
+        """Returns list of all indices if None, otherwise returns a
+        2D array."""
+        if ind is None:
+            return self.inds
+        else:
+            return np.atleast_2d(ind)
+
+
+def scatter(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
+            legend=None, **kwargs):
+    """Plots a scatter plot of x and y positions in a single frame."""
+    fig, ax = plt.subplots()
+    ax.scatter(x, y, **kwargs)
+
+    _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
+    return fig, ax
+
+
+def heatmap(x, y, z, **kwargs):
+    """Plots a heatmap of z vs. x and y in a single frame."""
+    fig, ax = plt.subplots()
+    ax.pcolormesh(x, y, z, **kwargs)
+
+    _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
+    # should there be something for the cmap (z) range?
+    return fig, ax
+
+
+def lineplot(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
+             legend=None, **kwargs):
+    """Plots a line from data y vs. x in a single frame."""
+    fig, ax = plt.subplots()
+    ax.plot(x, y, **kwargs)
+
+    _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
+    return fig, ax
+
+
+def energyplot(lbl, y, wid=1, sep=1, rot=90, maxe=None):
+    """Plots a connected bar plot used to represent potential energies."""
+    fig, ax = plt.subplots()
+
+    yplot = np.repeat(y, 2, axis=0)
+    x1 = np.arange(len(y)) * (wid + sep)
+    x2 = np.insert(x1 + wid, range(len(x1)), x1)
+
+    ax.plot(x2, yplot, zorder=0)
+    for i in range(len(y[0])):
+        ax.hlines(y[:,i], x1, x1 + wid, linewidth=2)
+
+    ax.set_xticks(x1 + 0.5*wid)
+    ax.set_xticklabels(lbl, rotation=rot)
+
+    _ax_set(ax, ylabel='Energy / eV', xlim=(x2[0] - wid, x2[-1] + wid),
+            ylim=(-0.1) if maxe is None else (-0.1, maxe))
+
+    ax.spines['top'].set_visible(False)
+    ax.spines['bottom'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.xaxis.set_ticks_position('none')
+    ax.yaxis.set_ticks_position('left')
+
+    return fig, ax
+
+
+def _ax_set(ax, xlabel=None, ylabel=None, xlim=None, ylim=None, legend=None):
+    """Sets basic properties of a given plot axis."""
+    if xlabel is not None:
+        ax.set_xlabel(xlabel)
+    if ylabel is not None:
+        ax.set_ylabel(ylabel)
+    if xlim is not None:
+        ax.set_xlim(*xlim)
+    if ylim is not None:
+        ax.set_ylim(*ylim)
+    if legend is not None:
+        ax.legend(legend, loc='best')
+
+
+def _get_lim(q, qlim):
+    """Gets the limits for a coordinate q."""
+    if qlim == 'range':
+        return min(q), max(q)
+    else:
+        return qlim

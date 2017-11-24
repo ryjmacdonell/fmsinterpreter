@@ -9,15 +9,14 @@ from geomtools import molecule
 from geomtools import kabsch
 from fmsinterpreter import fileio
 from fmsinterpreter import branching
+from fmsinterpreter import default
 
 
 def main():
     """The main getbranch routine."""
     # read in inputs and set defaults
-    inp = dict(states = [1, 0], ref_geoms = '*.xyz', invert = True,
-               permute = None, test_geoms = '../seed.*/Spawn.[0-9]')
-    if os.path.exists('branch.inp'):
-        inp.update(fileio.read_cfg('branch.inp'))
+    inp = default.branchget
+    fileio.cfg_update(inp, 'branch.inp')
 
     # get reference filenames
     ref_fnames = fileio.get_fnames(inp['ref_geoms'])

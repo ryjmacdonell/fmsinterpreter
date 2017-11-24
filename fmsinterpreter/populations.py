@@ -5,7 +5,6 @@ triexponential curve.
 """
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from fmsinterpreter import fileio
 
@@ -34,19 +33,6 @@ def read_amps(fnames, times, states):
     return amps
 
 
-def plot_amps(ax, times, amps, states, tconv=1.):
-    """Plots the amplitudes as a function of time."""
-    for a, s in zip(amps, states):
-        ax.plot(times*tconv, a, label=r'S{:d}'.format(s))
-    ax.set_xlim(min(times*tconv), max(times*tconv))
-    ax.set_ylim(0, 1)
-    ax.set_xlabel('Time / fs')
-    ax.set_ylabel('Adiabatic population')
-    ax.legend(loc=7)
-
-    return ax
-
-
 def fit_function(func, times, decay, p0, tconv=1.):
     """Fits amplitudes to a given exponential decay function.
 
@@ -68,11 +54,11 @@ def write_fit(func, popt, perr, outfname):
 
     This should be generalized to accept more than one set of fit values.
     """
-    if func == 'exp_func':
+    if func == 'exp':
         fitvals = ['t0', 'tau1']
-    elif func == 'biexp_func':
+    elif func == 'biexp':
         fitvals = ['t0', 'amp1', 'tau1', 'amp2', 'tau2']
-    elif func == 'triexp_func':
+    elif func == 'triexp':
         fitvals = ['t0', 'amp1', 'tau1', 'amp2', 'tau2', 'amp3', 'tau3']
 
     with open(outfname, 'w') as f:
@@ -84,32 +70,17 @@ def write_fit(func, popt, perr, outfname):
         f.write(''.join(['{:10.4f}'.format(p) for p in perr]) + '\n')
 
 
-def plot_fit(ax, func, times, decay, popt, tconv=1.):
-    """Plots the fit results for comparison to the raw data.
-
-    This should be generalized to accept more than one set of fit values.
-    """
-    t = times * tconv
-    ax.plot(t, decay, 'k-')
-    ax.plot(t, globals()[func](t, *popt), 'r-')
-    ax.set_ylim(0, 1)
-    ax.set_xlabel('Time / fs')
-    ax.set_ylabel('1-S0 Amplitude')
-
-    return ax
-
-
-def exp_func(x, x0, b):
+def exp(x, x0, b):
     """Returns an exponential function for curve fitting purposes."""
     return np.exp(-(x - x0) / b)
 
 
-def biexp_func(x, x0, a1, b1, a2, b2):
+def biexp(x, x0, a1, b1, a2, b2):
     """Returns a biexponential function for curve fitting purposes."""
     return a1 * np.exp(-(x - x0) / b1) + a2 * np.exp(-(x - x0) / b2)
 
 
-def triexp_func(x, x0, a1, b1, a2, b2, a3, b3):
+def triexp(x, x0, a1, b1, a2, b2, a3, b3):
     """Returns a triexponential function for curve fitting purposes."""
     return (a1 * np.exp(-(x - x0) / b1) + a2 * np.exp(-(x - x0) / b2) +
             a3 * np.exp(-(x - x0) / b3))
