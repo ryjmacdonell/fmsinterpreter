@@ -1,0 +1,41 @@
+#!/usr/bin/python
+"""
+Command line script for making scatter plots of two internal coordinates.
+"""
+import numpy as np
+from geomtools import molecule
+from fmsinterpreter import fileio
+from fmsinterpreter import default
+from fmsinterpreter import branching
+from fmsinterpreter import plot
+
+
+def main():
+    inp = default.scatterplot
+    fileio.cfg_update(inp, default.inpname['scatterplot'])
+
+    # get spawn filenames
+    fnames = fileio.get_fnames(inp['geoms'])
+
+    # import geometries
+    all_geoms = molecule.import_bundle(fnames, hascom=True)
+    branching.trim_states(all_geoms, inp['states'])
+
+    # get coordinates
+    x = all_geoms.get_coord(inp['xcoord'], inp['xinds'], units=inp['xunits'])
+    y = all_geoms.get_coord(inp['ycoord'], inp['yinds'], units=inp['yunits'])
+
+    # get populations
+    #pop = ?
+
+    # write to a data file
+    fileio.write_dat(inp['data_name'], np.vstack((x, y)).T,
+                     labels=[inp['xlabel'], inp['ylabel']])
+
+    # make a scatter plot
+    fig, ax = plot.scatter(x, y, xlabel=inp['xlabel'], ylabel=inp['ylabel'])
+    fig.savefig(inp['plot_name'], bbox_inches='tight')
+
+
+if __name__ == '__main__':
+    main()

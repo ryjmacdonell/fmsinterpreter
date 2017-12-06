@@ -4,7 +4,7 @@ from fmsinterpreter import default
 
 def main():
     inp = default.trpesplot
-    fileio.cfg_update(inp, 'trpes.inp')
+    fileio.cfg_update(inp, default.inpname['trpesplot'])
 
 
 if __name__ == '__main__':

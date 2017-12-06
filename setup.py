@@ -21,8 +21,17 @@ setup(
     author_email='rmacd054@uottawa.ca',
     license='MIT',
     packages=find_packages(),
-    scripts=['bin/branchget', 'bin/contourplot', 'bin/denplot',
-             'bin/getdefault', 'bin/histplot', 'bin/pesplot', 'bin/popplot'],
+    scripts=[
+        'bin/branchget',
+        'bin/contourplot',
+        'bin/denplot',
+        'bin/getdefault',
+        'bin/histplot',
+        'bin/pesplot',
+        'bin/popplot',
+        'bin/scatterplot',
+        'bin/trpesplot'
+             ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',

@@ -9,8 +9,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from cycler import cycler
 # if black/white is set...
-plt.rc('axes', prop_cycle=(cycler('color', ['k', 'k', 'k', 'k']) +
-                           cycler('linestyle', ['-', '--', ':', '-.'])))
+#plt.rc('axes', prop_cycle=(cycler('color', ['k', 'k', 'k', 'k']) +
+#                           cycler('linestyle', ['-', '--', ':', '-.'])))
 
 
 def Figure(object):

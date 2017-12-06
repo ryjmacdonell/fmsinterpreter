@@ -4,7 +4,7 @@ from fmsinterpreter import default
 
 def main():
     inp = default.denplot
-    fileio.cfg_update(inp, 'den.inp')
+    fileio.cfg_update(inp, default.inpname['denplot'])
 
 
 if __name__ == '__main__':

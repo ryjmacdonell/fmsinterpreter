@@ -4,7 +4,7 @@ from fmsinterpreter import default
 
 def main():
     inp = default.histplot
-    fileio.cfg_update(inp, 'hist.inp')
+    fileio.cfg_update(inp, default.inpname['histplot'])
 
 
 if __name__ == '__main__':

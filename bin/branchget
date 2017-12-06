@@ -16,7 +16,7 @@ def main():
     """The main getbranch routine."""
     # read in inputs and set defaults
     inp = default.branchget
-    fileio.cfg_update(inp, 'branch.inp')
+    fileio.cfg_update(inp, default.inpname['branchget'])
 
     # get reference filenames
     ref_fnames = fileio.get_fnames(inp['ref_geoms'])

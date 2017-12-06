@@ -14,7 +14,7 @@ def main():
     """The main pesplot routine."""
     # read in the input file
     inp = default.pesplot
-    fileio.cfg_update(inp, 'pes.inp')
+    fileio.cfg_update(inp, default.inpname['pesplot'])
 
     # read in the energy data
     labels, energies = potentials.read_nrg(inp['infname'])

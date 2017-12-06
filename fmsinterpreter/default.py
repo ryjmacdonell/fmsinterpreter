@@ -12,6 +12,8 @@ inpname = dict(
     contourplot = 'contour.inp',
     denplot = 'den.inp',
     histplot = 'hist.inp',
+    scatterplot = 'scatter.inp',
+    trpesplot = 'trpes.inp',
     pesplot = 'pes.inp',
     popplot = 'pop.inp'
                )
@@ -29,6 +31,21 @@ contourplot = dict()
 denplot = dict()
 
 histplot = dict()
+
+scatterplot = dict(
+    states = [1, 0],
+    geoms = '../seed.*/Spawn.[0-9]',
+    xcoord = 'stre',
+    ycoord = 'stre',
+    xinds = [0, 1],
+    yinds = [0, 1],
+    xunits = 'auto',
+    yunits = 'auto',
+    xlabel = 'R_12',
+    ylabel='R_12',
+    data_name = 'scatter.dat',
+    plot_name = 'scatter.pdf'
+                   )
 
 trpesplot = dict()
 

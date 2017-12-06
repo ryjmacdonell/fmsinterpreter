@@ -13,7 +13,7 @@ from fmsinterpreter import plot
 def main():
     """The main population plot routine."""
     inp = default.popplot
-    fileio.cfg_update(inp, 'pop.inp')
+    fileio.cfg_update(inp, default.inpname['popplot'])
 
     # get number of seeds
     nseed = len(fileio.get_fnames(inp['directory_stem']))
