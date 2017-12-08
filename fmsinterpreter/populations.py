@@ -11,7 +11,10 @@ from fmsinterpreter import fileio
 
 def read_amps(fnames, times, states):
     """Reads the amplitudes of each trajectory within a time window
-    and returns an array of total amplitudes."""
+    and returns an array of total amplitudes.
+
+    This should probably be incorporated into fileio somehow.
+    """
     amps = np.zeros((len(states), len(times)))
 
     for fname in fnames:

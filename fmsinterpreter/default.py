@@ -26,7 +26,24 @@ branchget = dict(
     test_geoms = '../seed.*/Spawn.[0-9]'
                  )
 
-contourplot = dict()
+contourplot = dict(
+    nstates = 1,
+    istate = 0,
+    infname = 'energies.out',
+    eshift = 0.,
+    efac = 27.21138505,
+    xpts = 30,
+    ypts = 30,
+    xshift = 0.,
+    yshift = 0.,
+    xfac = 1.,
+    yfac = 1.,
+    xlabel = 'x',
+    ylabel = 'y',
+    xmeci = None,
+    ymeci = None,
+    plot_name = 'contour.pdf'
+                   )
 
 denplot = dict()
 
@@ -41,8 +58,8 @@ scatterplot = dict(
     yinds = [0, 1],
     xunits = 'auto',
     yunits = 'auto',
-    xlabel = 'R_12',
-    ylabel='R_12',
+    xlabel = 'x',
+    ylabel='y',
     data_name = 'scatter.dat',
     plot_name = 'scatter.pdf'
                    )

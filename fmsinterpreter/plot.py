@@ -2,15 +2,41 @@
 General plotting routines for the FMS scripts.
 
 This should be a stand-alone module which handles all calls to
-matplotlib. The Figure object can be used to handle multiple
-plots on a single or multiple canvases.
+Matplotlib. The Figure object can be used to handle multiple
+plots on single or multiple canvases.
 """
 import numpy as np
 import matplotlib.pyplot as plt
 from cycler import cycler
-# if black/white is set...
-#plt.rc('axes', prop_cycle=(cycler('color', ['k', 'k', 'k', 'k']) +
-#                           cycler('linestyle', ['-', '--', ':', '-.'])))
+
+
+def set_theme(color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+                     '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'],
+              linestyle=['-', '--', ':', '-.'],
+              marker=['', '.', 'o', 's', '^', '*', '+', 'x'],
+              order=['color', 'linestyle', 'marker']):
+    """Sets colours, linetypes and markers to a given theme.
+
+    The pre-set values are the Matplotlib default color scheme followed
+    by the same scheme with linestyles, then markers. Changing the keyword
+    'order' will change the cycle order. By default, colours are cycled
+    through first, followed by linestyles, then markers.
+
+    For a black and white theme, use color='k'.
+    """
+    def_order = ['color', 'linestyle', 'marker']
+    if isinstance(order, str):
+        def_order.remove(order)
+        order += def_order
+    elif len(order) < 3:
+        for i in order:
+            def_order.remove(i)
+        order += def_order
+    plt.rc('axes', prop_cycle=(
+        cycler(order[2], locals()[order[2]]) *
+        cycler(order[1], locals()[order[1]]) *
+        cycler(order[0], locals()[order[0]])
+                               ))
 
 
 def Figure(object):
@@ -26,6 +52,11 @@ def Figure(object):
         inds = np.rollaxis(inds, 0, 3)
         self.inds = inds.reshape((max0*max1, 2))
 
+    def lineplot(self, x, y, isub=(0,0), **kwargs):
+        """Plots a line from data y vs. x in the subplot position isub."""
+        ax = self.axarr[isub[0], isub[1]]
+        ax.plot(x, y, **kwargs)
+
     def scatter(self, x, y, isub=(0,0), **kwargs):
         """Plots a scatter plot of x and y positions in the subplot
         position isub."""
@@ -35,12 +66,16 @@ def Figure(object):
     def heatmap(self, x, y, z, isub=(0,0), **kwargs):
         """Plots a heatmap of z vs. x and y in the subplot position isub."""
         ax = self.axarr[isub[0], isub[1]]
-        ax.pcolormesh(x, y, z, **kwargs)
+        ax.pcolormesh(x, y, z, rasterized=True, **kwargs)
 
-    def lineplot(self, x, y, isub=(0,0), **kwargs):
-        """Plots a line from data y vs. x in the subplot position isub."""
+    def contour(self, x, y, z, isub=(0,0), **kwargs):
+        """Plots a contour plot of z vs. x and y in the subplot
+        position isub."""
+        lvl = np.arange(np.floor(min(z)), np.ceil(max(z)), 0.5)
         ax = self.axarr[isub[0], isub[1]]
-        ax.plot(x, y, **kwargs)
+        cs = ax.contour(x, y, z, lvl, **kwargs)
+        ax.setp(cs.collections[1::2], alpha=0.5)
+        ax.clabel(cs, cs.levels[::2], inline=1, fmt=r'%.2f')
 
     def set_xlabel(self, label, isub=None):
         """Sets the x-axis label on subplot(s) in position isub. If no isub
@@ -90,6 +125,16 @@ def Figure(object):
             return np.atleast_2d(ind)
 
 
+def lineplot(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
+             legend=None, **kwargs):
+    """Plots a line from data y vs. x in a single frame."""
+    fig, ax = plt.subplots()
+    ax.plot(x, y, **kwargs)
+
+    _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
+    return fig, ax
+
+
 def scatter(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
             legend=None, **kwargs):
     """Plots a scatter plot of x and y positions in a single frame."""
@@ -100,23 +145,27 @@ def scatter(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
     return fig, ax
 
 
-def heatmap(x, y, z, **kwargs):
-    """Plots a heatmap of z vs. x and y in a single frame."""
+def contour(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
+            legend=None, **kwargs):
+    """Plots a contour plot of z vs. x and y in a single frame."""
+    lvl = np.arange(np.floor(np.min(z)), np.ceil(np.max(z)), 0.5)
     fig, ax = plt.subplots()
-    ax.pcolormesh(x, y, z, **kwargs)
+    cs = ax.contour(x, y, z, lvl, **kwargs)
+    plt.setp(cs.collections[1::2], alpha=0.5)
+    ax.clabel(cs, cs.levels[::2], inline=1, fmt=r'%.2f')
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
-    # should there be something for the cmap (z) range?
     return fig, ax
 
 
-def lineplot(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
-             legend=None, **kwargs):
-    """Plots a line from data y vs. x in a single frame."""
+def heatmap(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
+            legend=None, **kwargs):
+    """Plots a heatmap of z vs. x and y in a single frame."""
     fig, ax = plt.subplots()
-    ax.plot(x, y, **kwargs)
+    ax.pcolormesh(x, y, z, rasterized=True, **kwargs)
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
+    # should there be something for the cmap (z) range?
     return fig, ax
 
 
@@ -137,14 +186,25 @@ def energyplot(lbl, y, wid=1, sep=1, rot=90, maxe=None):
 
     _ax_set(ax, ylabel='Energy / eV', xlim=(x2[0] - wid, x2[-1] + wid),
             ylim=(-0.1) if maxe is None else (-0.1, maxe))
-
     ax.spines['top'].set_visible(False)
     ax.spines['bottom'].set_visible(False)
     ax.spines['right'].set_visible(False)
     ax.xaxis.set_ticks_position('none')
     ax.yaxis.set_ticks_position('left')
-
     return fig, ax
+
+
+def save(fname, figure=None, dpi=300):
+    """Saves a provided figure (or the current figure) to
+    a given filename.
+
+    Note that the 'dpi' flag only affects raster filetypes and
+    plots with rasterized=True (e.g. heatmaps).
+    """
+    if figure is None:
+        plt.savefig(fname, bbox_inches='tight', dpi=dpi)
+    else:
+        figure.savefig(fname, bbox_inches='tight', dpi=dpi)
 
 
 def _ax_set(ax, xlabel=None, ylabel=None, xlim=None, ylim=None, legend=None):

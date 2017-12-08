@@ -34,7 +34,7 @@ def main():
 
     # make a scatter plot
     fig, ax = plot.scatter(x, y, xlabel=inp['xlabel'], ylabel=inp['ylabel'])
-    fig.savefig(inp['plot_name'], bbox_inches='tight')
+    plot.save(inp['plot_name'])
 
 
 if __name__ == '__main__':

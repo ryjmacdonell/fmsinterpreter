@@ -49,7 +49,7 @@ def main():
                                     ylabel='1-S0 Amplitude',
                                     xlim=(min(t), max(t)), ylim=(0,1),
                                     legend=['raw data', ff+' fit'])
-            fig.savefig(inp['fit_plot_name'], bbox_inches='tight')
+            plot.save(inp['fit_plot_name'], figure=fig)
 
     # plot the amplitudes
     if inp['amplitude_plot_name'] is not None:
@@ -59,7 +59,7 @@ def main():
                                 ylabel='Adiabatic population',
                                 xlim='range', ylim=(0,1),
                                 legend=labels)
-        fig.savefig(inp['amplitude_plot_name'], bbox_inches='tight')
+        plot.save(inp['amplitude_plot_name'], figure=fig)
 
 
 if __name__ == '__main__':

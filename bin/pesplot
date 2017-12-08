@@ -29,7 +29,7 @@ def main():
     fig, ax = plot.energyplot(labels, energies, wid=inp['gwid'],
                               sep=inp['gsep'], rot=inp['lblrot'],
                               maxe=inp['maxener'])
-    fig.savefig(inp['plot_name'], bbox_inches='tight')
+    plot.save(inp['plot_name'])
 
 
 if __name__ == '__main__':

@@ -1,10 +1,33 @@
 #!/usr/bin/python
+"""
+Console script for plotting potential energy surface contours.
+"""
+import numpy as np
+from fmsinterpreter import fileio
 from fmsinterpreter import default
+from fmsinterpreter import plot
 
 
 def main():
     inp = default.contourplot
     fileio.cfg_update(inp, default.inpname['contourplot'])
+
+    # import plot data
+    data = np.loadtxt(inp['infname'])
+
+    # extract the energies and axis values
+    newdata = data.reshape(inp['xpts'], inp['ypts'],
+                           inp['nstates'], inp['nstates'])
+    energy = (newdata[:,:,:,2] - inp['eshift']) * inp['efac']
+    energy = energy[:,:,inp['istate']]
+    x = newdata[:,0,0,0]
+    y = newdata[0,:,0,1]
+
+    # make contour plot
+    fig, ax = plot.contour(x, y, energy, xlabel=inp['xlabel'],
+                           ylabel=inp['ylabel'], xlim='range', ylim='range',
+                           colors='k')
+    plot.save(inp['plot_name'])
 
 
 if __name__ == '__main__':
