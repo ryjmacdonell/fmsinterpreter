@@ -2,6 +2,26 @@
 """
 Command line script for plotting critical points on the potential energy
 surface.
+
+Input:
+    states: list of int. The state indices for states to be plotted.
+    infname: str. The filename of the input file, with each line containing
+        the geometry label followed by the state energies in increasing
+        order.
+    plotorder: list of int. The order in which to plot the geometries in
+        [infname].
+    gwid: float. The width of each geometry bar in the plot.
+    gsep: float. The separation between geometry bars in the plot.
+    lblrot: float. The rotation angle (in degrees) of geometry labels
+        in the plot.
+    maxener: float. The maximum energy (in converted units) for the plot.
+    minener: float. The minimum energy (in converted units) for the plot.
+    econv: float. The conversion factor with which energies are multiplied.
+    plot_name: str. The file name for the PES plot.
+
+Output:
+    [plot_name]: A matplotlib-generated graphics file with the desired
+        potential energy surface plot.
 """
 import os
 from fmsinterpreter import fileio
@@ -17,7 +37,7 @@ def main():
     fileio.cfg_update(inp, default.inpname['pesplot'])
 
     # read in the energy data
-    labels, energies = potentials.read_nrg(inp['infname'])
+    energies, labels = fileio.read_dat(inp['infname'], skipcol=1, labels='col')
 
     # reorder indices and convert energies
     labels, energies = potentials.conv_nrg(labels, energies,

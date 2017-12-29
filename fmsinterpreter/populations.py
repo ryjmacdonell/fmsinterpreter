@@ -9,31 +9,151 @@ from scipy.optimize import curve_fit
 from fmsinterpreter import fileio
 
 
-def read_amps(fnames, times, states):
-    """Reads the amplitudes of each trajectory within a time window
-    and returns an array of total amplitudes.
+def read_amps(fnames, times, states, aconv=1.):
+    """Reads the amplitudes of each trajectory at given times and returns
+    arrays of amplitudes, child state and parent state."""
+    amps = np.zeros((len(fnames), len(times)))
+    tjinfo = np.empty((len(fnames), 5), dtype=int)
 
-    This should probably be incorporated into fileio somehow.
+    for i, fname in enumerate(fnames):
+        tlocal, alocal = fileio.read_dat(fname, skiprow=1, usecols=(0,-2)).T
+        tjinfo[i] = get_spawn_info(fname)
+        #with open(fname) as f:
+        #    lines = [line.split() for line in f.readlines() if
+        #             'Time' not in line and line != '\n']
+
+        #alldata = np.array(lines, dtype=float)
+        #tlocal = alldata[:,0]
+        #st = states.index(int(alldata[0,-1]) - 1)
+        #if st in states:
+        for j, t in enumerate(times):
+            if t > tlocal[-1]:
+                amps[i, j:] += alocal[len(tlocal)-1]
+                break
+            elif t >= tlocal[0]:
+                amps[i, j] += alocal[np.argmin(np.abs(tlocal - t))]
+
+    return aconv*amps, tjinfo
+
+
+def get_spawn_info(fname, first_lbl=1):
+    """Reads the trajectory labels and states for parent and child of
+    a given trajectory."""
+    dsplit = fname.split('/')
+    seed = int(dsplit[-2].split('.')[1])
+    cid = int(dsplit[-1].split('.')[1])
+    if cid > first_lbl:
+        spawnf = fname.replace('TrajDump', 'Spawn').replace('trajectory',
+                                                            'spawn')
+        with open(spawnf, 'r') as f:
+            f.readline()
+            comment = f.readline().split()
+        cstate = int(comment[3]) - 1
+        pid = int(comment[6])
+        pstate = int(comment[9])
+    else:
+        with open(fname, 'r') as f:
+            f.readline()
+            alldat = f.readline().split()
+        cstate = int(alldat[-1].split('.')[0]) - 1
+        pid = -1
+        pstate = first_lbl
+
+    return np.array([seed, cid, cstate, pid, pstate], dtype=int)
+
+
+def total_amps(amps, states):
+    """Sums a set of amplitudes from different trajectories by their
+    adiabatic state label."""
+    stamps = np.zeros((max(states)+1, amps.shape[1]))
+    for i, s in enumerate(states):
+        stamps[s] += amps[i]
+    return stamps
+
+
+def integ_spawn_pop(amps, traj_info):
+    """Returns the population transferred at each spawning event using
+    the integration method.
+
+    The change in population of the child is the negative of the change
+    in population of the parent (assuming no effects from other
+    trajectories). Thus, taking the negative product of the two
+    derivatives gives a correlated function,
+        (dp/dt)^2 = -(dp_c/dt)*(dp_p/dt),
+    where the subscripts c and p correspond to child and parent. If
+    negative values of (dp/dt)^2 are neglected, the total transferred
+    population can be found by:
+        p_trans = int[ dt * sgn(dp_c/dt) * sqrt((dp/dt)^2) ],
+    where int represents integration over all time and sgn represents
+    the sign function.
     """
-    amps = np.zeros((len(states), len(times)))
+    ti = np.argmax(amps > 1e-10, axis=1) - 1
+    ntraj = len(amps)
+    pops = np.zeros(ntraj)
 
-    for fname in fnames:
-        with open(fname) as f:
-            lines = [line.split() for line in f.readlines() if
-                     'Time' not in line and line != '\n']
+    for i in range(ntraj):
+        if traj_info[i,3] >= 0:
+            # get the child and parent populations
+            pc = amps[i,ti:ti+400]
+            mask = np.logical_and(traj_info[:,0] == traj_info[i,0],
+                                  traj_info[:,1] == traj_info[i,3])
+            pp = amps[np.argmax(mask),ti:ti+400]
 
-        alldata = np.array(lines, dtype=float)
-        tlocal = alldata[:,0]
-        st = states.index(int(alldata[0,-1]) - 1)
-        if st in states:
-            for i, t in enumerate(times):
-                if t > tlocal[-1]:
-                    amps[st, i:] += alldata[len(tlocal)-1, -2]
+            # take the derivatives
+            dpc = pc[1:] - pc[:-1]
+            dpp = pp[1:] - pp[:-1]
+
+            # multiply the derivatives, take the sqrt and unwrap the phase
+            dp2 = -dpc*dpp
+            dp2[dp2 < 0] = 0
+            dp = np.sign(dpc) * np.sqrt(dp2)
+
+            # integrate from the inital child population
+            pops[i] = np.sum(dp)
+
+    return pops
+
+
+def thrsh_spawn_pop(amps, traj_info, inthrsh=5e-3, fithrsh=1e-3, nbuf=4):
+    """Returns the population tranferred at each spawning event using
+    the threshold method.
+
+    A population event generally corresponds to a nearly stepwise
+    change in the population, and thus a spike in its derivative. When
+    dp/dt goes above a specified value, that is marked at the inital time
+    and a final time is found where dp/dt falls below another given
+    threshold. To correct for possible turning points, a buffer window
+    can be chosen such that all points in the buffer must fall below the
+    threshold before the final time is chosen.
+    """
+    ti = np.argmax(amps > 1e-10, axis=1) - 1
+    ntraj = len(amps)
+    pops = np.zeros(ntraj)
+
+    for i in range(ntraj):
+        if traj_info[i,3] >= 0:
+            p = amps[i,ti:ti+400]
+
+            # get the derivative, population range and number of time steps
+            dp = p[1:] - p[:-1]
+            rng = np.ptp(p)
+            nt = len(dp)
+
+            # find the time where dp exceeds inthrsh
+            for iin in range(nt):
+                if dp[iin] > inthrsh*rng:
                     break
-                elif t >= tlocal[0]:
-                    amps[st, i] += alldata[np.argmin(np.abs(tlocal - t)), -2]
 
-    return amps
+            # find the time where dp falls below fithrsh for nbuf steps
+            for iout in range(iin, nt-nbuf):
+                comp = dp[iout:iout+nbuf]
+                if max(comp) < fithrsh*rng:
+                    iout += 1
+                    break
+
+            pops[i] = p[iout] - p[iin]
+
+    return pops
 
 
 def fit_function(func, times, decay, p0, tconv=1.):

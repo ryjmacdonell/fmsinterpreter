@@ -90,11 +90,29 @@ def get_fnames(matchex):
     return fnames
 
 
-def read_dat(fname, labelrow=1, labelcol=0):
-    """Reads an array of data from an input file."""
-    for i in range(labelrow):
-        labels = np.readline().split()
-    return labels, np.loadtxt(fname, skiprows=labelrow)
+def read_dat(fname, dtype=float, skiprow=0, skipcol=0, labels=None,
+             usecols=None):
+    """Reads an array of data from an input file.
+
+    Specifying labels as 'row' or 'col' will return the last skipped
+    row/column as well as the data array. The 'usecols' keyword will
+    only use the specified columns and takes precedence over 'skipcol'.
+    """
+    data = np.genfromtxt(fname, dtype=dtype, skip_header=skiprow,
+                         usecols=usecols)
+    if usecols is None:
+        data = data[:,skipcol:]
+    if labels == 'row' and skiprow > 0:
+        with open(fname, 'r') as f:
+            for i in range(skiprow):
+                labels = np.array(f.readline().split())
+        return data, labels
+    elif labels == 'col' and skipcol > 0:
+        labels = np.genfromtxt(fname, dtype=str, skip_header=skiprow,
+                               usecols=skipcol-1)
+        return data, labels
+    else:
+        return data
 
 
 def write_dat(fname, data, labels=None, charwid=10, decwid=4):

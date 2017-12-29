@@ -7,6 +7,7 @@ an input file with the default set of inputs.
 """
 import os
 
+
 inpname = dict(
     branchget = 'branch.inp',
     contourplot = 'contour.inp',
@@ -31,7 +32,7 @@ contourplot = dict(
     istate = 0,
     infname = 'energies.out',
     eshift = 0.,
-    efac = 27.21138505,
+    econv = 27.21138505,
     xpts = 30,
     ypts = 30,
     xshift = 0.,
@@ -96,6 +97,21 @@ popplot = dict(
     fit_plot_name = None
                )
 
+
+def convert2str(val):
+    """Converts a value to a basic string."""
+    if isinstance(val, list):
+        if isinstance(val[0], list):
+            # 2D list, delimit with ',' and ';'
+            return '; '.join([', '.join([str(i) for i in j]) for j in val])
+        else:
+            # 1D list, delimit with ','
+            return ', '.join([str(i) for i in val])
+    else:
+        # str() will handle ints, floats, bools and NoneType
+        return str(val)
+
+
 def write_default(routine):
     """Writes a default input file based on the routine name."""
     routine_dict = globals()[routine]
@@ -115,15 +131,21 @@ def write_default(routine):
                 f.write('#' + line)
 
         for key in routine_dict:
-            val = routine_dict[key]
-            if isinstance(val, list):
-                if isinstance(val[0], list):
-                    # 2D list, delimit with ',' and ';'
-                    val = '; '.join([', '.join([str(i) for i in j]) for j in val])
-                else:
-                    # 1D list, delimit with ','
-                    val = ', '.join([str(i) for i in val])
-            else:
-                # str() will handle ints, floats, bools and NoneType
-                val = str(val)
-            f.write('{:s} = {:s} # default\n'.format(key, val))
+            sval = convert2str(routine_dict[key])
+            f.write('{:s} = {:s} # default\n'.format(key, sval))
+
+
+def generate_input(routine):
+    """Generates an input file from the command line based on user input."""
+    routine_dict = globals()[routine]
+    fname = inpname[routine]
+    #printdocs = input('Print documentation? [n] ').strip().lower()
+    #if printdocs in ['y', 'yes']:
+
+    with open(fname, 'w') as f:
+        print('# Input generated with the geninput routine')
+        for key in routine_dict:
+            sval = convert2str(routine_dict[key])
+            inp = input(key+' ['+sval+'] = ').strip()
+            if inp != '' and inp != sval:
+                f.write('{:s} = {:s}\n'.format(key, inp))

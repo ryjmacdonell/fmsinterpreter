@@ -1,6 +1,30 @@
 #!/usr/bin/python
 """
 Command line script for making scatter plots of two internal coordinates.
+
+Input:
+    states: list of ints, length 2. Defines the initial and final states
+        for computing the branching ratio.
+    geoms: str or list of str. The geometry files used to measure
+        internal coordinates.
+    xcoord: str. The x coordinate type, as specified in geomtools.displacement
+        and geomtools.molecule.
+    ycoord: str. The y coordinate type, as specified in geomtools.displacement
+        and geomtools.molecule.
+    xinds: list of int. The atomic indices for the x coordinate.
+    yinds: list of int. The atomic indices for the y coordinate.
+    xunits: str. The x coordinate units as specified in geomtools.cons.
+    yunits: str. The y coordinate units as specified in geomtools.cons.
+    xlabel: str. The x coordinate label in the scatter plot.
+    ylabel: str. The y coordinate label in the scatter plot.
+    data_name: str. The filename of the output data file.
+    plot_name: str. The filename of the generated scatter plot.
+
+Output:
+    [data_name]: A raw-text file containing the coordinate values used
+        to plot each point in the plot.
+    [plot_name]: A matplotlib-generated graphics file with the desired
+        scatter plot.
 """
 import numpy as np
 from geomtools import molecule

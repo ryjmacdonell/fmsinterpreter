@@ -1,4 +1,12 @@
 #!/usr/bin/python
+"""
+Command line script for plotting histograms of data.
+
+Input:
+
+Output:
+
+"""
 from fmsinterpreter import default
 
 

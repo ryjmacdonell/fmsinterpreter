@@ -1,6 +1,44 @@
 #!/usr/bin/env python
 """
 Command line script for getting and plotting adiabatic populations.
+
+Input:
+    states: list of int. The adiabatic state indices for states to plot.
+    fms_time_increment: float. The increment between data points in
+        unconverted units (i.e. a.u.). Must be larger than the FMS
+        minimum time increment.
+    time_conv: float. The conversion factor by which all times are
+        multiplied.
+    tmin: float. The minimum time used in the plot or fit.
+    tmax: float. The maximum time used in the plot or fit.
+    directory_stem: str or list of str. The seed directories used to
+        find the total number of seeds. Can use regular expressions
+        recognized by glob.
+    trajectory_files: str or list of str. The trajectory filenames
+        containing population information. Can use regular expressions
+        recognized by glob.
+    amplitude_data_name: str. The filename for the amplitude vs. time
+        raw text data.
+    amplitude_plot_name: str. The filename for the amplitude plot.
+    fit_function: str. The name of the function used to fit the
+        amplitudes (exp, biexp, triexp).
+    p0: list of int. Initial guesses used for fitting (2 for exp, 6 for
+        biexp, 9 for triexp).
+    fit_data_name: str. The filename for raw-text information on the
+        fit parameters.
+    fit_plot_name: str. The filename for the fit plot and its corresponding
+        raw data.
+
+Output:
+    [amplitude_data_name]: The raw text data of total adiabatic amplitudes
+        vs. time.
+    [amplitude_plot_name]: A matplotlib-generated graphics file of the
+        desired population plot (only if amplitude_plot_name is not None).
+    [fit_data_name]: A raw text file of fit parameters (only if fit_function
+        is not None).
+    [fit_plot_name]: A matplot-generate graphics file of the fit population
+        plot and the raw data for comparison (only if both fit_function
+        and fit_plot_name are not None).
 """
 import os
 import numpy as np
@@ -27,7 +65,9 @@ def main():
                      inp['fms_time_increment'])
 
     # read the amplitudes
-    amplitude = populations.read_amps(traj_fnames, time, inp['states']) / nseed
+    tj_amps, tj_info = populations.read_amps(traj_fnames, time, inp['states'],
+                                             aconv=1./nseed)
+    amplitude = populations.total_amps(tj_amps, tj_info[:,2])
 
     # write to a data file
     fileio.write_dat(inp['amplitude_data_name'],

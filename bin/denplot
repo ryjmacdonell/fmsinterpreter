@@ -1,4 +1,13 @@
 #!/usr/bin/python
+"""
+Command line script for plotting internal coordinate densities generated
+by mcdensity.f90.
+
+Input:
+
+Output:
+
+"""
 from fmsinterpreter import default
 
 

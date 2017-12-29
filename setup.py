@@ -25,6 +25,7 @@ setup(
         'bin/branchget',
         'bin/contourplot',
         'bin/denplot',
+        'bin/geninput',
         'bin/getdefault',
         'bin/histplot',
         'bin/pesplot',
