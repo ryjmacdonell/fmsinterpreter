@@ -1,9 +1,10 @@
 """
 The default dictionary values for different routines.
 
-When a console routine it calls, the default dictionary is called from this
+When a console routine is called, the default dictionary is called from this
 file. Alternatively, the command getdefault [routine_name] will create
-an input file with the default set of inputs.
+an input file with the default set of inputs. Similarly,
+geninput [routine_name] will query for input for each dictionary variable.
 """
 import os
 
@@ -16,6 +17,7 @@ inpname = dict(
     scatterplot = 'scatter.inp',
     trpesplot = 'trpes.inp',
     pesplot = 'pes.inp',
+    popassign = 'assign.inp',
     popplot = 'pop.inp'
                )
 
@@ -24,7 +26,7 @@ branchget = dict(
     ref_geoms = '*.xyz',
     invert = True,
     permute = None,
-    test_geoms = '../seed.*/Spawn.[0-9]'
+    test_trajs = '../seed.*/TrajDump.[0-9]'
                  )
 
 contourplot = dict(
@@ -46,13 +48,27 @@ contourplot = dict(
     plot_name = 'contour.pdf'
                    )
 
-denplot = dict()
+denplot = dict(
+    file_stub = '../density/fmsDen_t',
+    tinc = 50,
+    tmin = 0.,
+    tmax = 12000.,
+    tunits = 'fs',
+    ncoord = 361,
+    coordmin = 0.,
+    coordmax = 3.14159265359,
+    coordunits = 'deg',
+    coordlbl = r'Angle / degrees',
+    data_name = 'den.dat',
+    plot_name = 'den.pdf'
+               )
 
-histplot = dict()
+histplot = dict(
+                )
 
 scatterplot = dict(
     states = [1, 0],
-    geoms = '../seed.*/Spawn.[0-9]',
+    traj_files = '../seed.*/TrajDump.[1-9]*',
     xcoord = 'stre',
     ycoord = 'stre',
     xinds = [0, 1],
@@ -62,10 +78,12 @@ scatterplot = dict(
     xlabel = 'x',
     ylabel='y',
     data_name = 'scatter.dat',
-    plot_name = 'scatter.pdf'
+    plot_name = 'scatter.pdf',
+    pop_weight = False
                    )
 
-trpesplot = dict()
+trpesplot = dict(
+                 )
 
 pesplot = dict(
     states = None,
@@ -78,8 +96,14 @@ pesplot = dict(
     minener = None,
     econv = 27.21138505,
     data_name = 'pes.dat',
-    plot_name = 'pes.pdf'
+    plot_name = 'pes.pdf',
+    show_grid = True
                )
+
+popassign = dict(
+    traj_files = '../seed.*/TrajDump.*',
+    spawn_fname = 'spawn.xyz'
+                 )
 
 popplot = dict(
     states = [0, 1, 2],
@@ -88,7 +112,7 @@ popplot = dict(
     tmin = 0.0,
     tmax = 1000.0,
     directory_stem = '../seed.*',
-    trajectory_files = '../seed.*/TrajDump.*',
+    traj_files = '../seed.*/TrajDump.*',
     amplitude_data_name = 'pop.dat',
     amplitude_plot_name = 'pop.pdf',
     fit_function = None,

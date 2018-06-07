@@ -1,6 +1,5 @@
 """
-Plotting routine for visualizing critical points on a potential energy
-surface relative to a given minimum energy.
+Module for interpreting potential energies for plotting.
 """
 import os
 import numpy as np

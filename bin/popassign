@@ -1,0 +1,47 @@
+#!/usr/bin/python
+"""
+Command line script for making a list of spawn geometries with spawn
+populations
+
+Input:
+    traj_files: str or list of str. The trajectory filenames used for
+        populations and geometries.
+    spawn_fname: the name of the outputted spawn geometry file
+
+Output:
+    [spawn_fname]: A file with all spawn geometries
+"""
+import numpy as np
+from geomtools import molecule
+from fmsinterpreter import fileio
+from fmsinterpreter import default
+from fmsinterpreter import populations
+
+
+def main():
+    inp = default.popassign
+    fileio.cfg_update(inp, default.inpname['popassign'])
+
+    # get spawn filenames
+    fnames = fileio.get_fnames(inp['traj_files'])
+    traj_info = populations.read_tjinfo(fnames)
+
+    amps, times = populations.read_amps(fnames)
+    pops = populations.integ_spawn_pop(amps, times, traj_info)
+    pops[pops < 0] = 0
+
+    # get spawn files
+    mask = traj_info[:,3] >= 0
+    fnames = [fnames[i] for i in range(len(fnames)) if mask[i]]
+    spawnf = [f.replace('TrajDump', 'Spawn').replace('trajectory','spawn') for
+              f in fnames]
+    pops = pops[mask]
+    bund = molecule.import_bundle(spawnf, hascom=True)
+    for i in range(bund.nmol):
+        bund.molecules[i].comment += ' pop {:10.6f}'.format(pops[i])
+
+    bund.write(inp['spawn_fname'])
+
+
+if __name__ == '__main__':
+    main()

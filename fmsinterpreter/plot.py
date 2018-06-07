@@ -1,5 +1,5 @@
 """
-General plotting routines for the FMS scripts.
+Module of all plotting routines used in FMSinterpreter.
 
 This should be a stand-alone module which handles all calls to
 Matplotlib. The Figure object can be used to handle multiple
@@ -8,6 +8,8 @@ plots on single or multiple canvases.
 import numpy as np
 import matplotlib.pyplot as plt
 from cycler import cycler
+import customcolour.cmap as cm
+plt.rc('axes', axisbelow=True)
 
 
 def set_theme(color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
@@ -136,10 +138,15 @@ def lineplot(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
 
 
 def scatter(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
-            legend=None, **kwargs):
+            legend=None, transp=None, **kwargs):
     """Plots a scatter plot of x and y positions in a single frame."""
     fig, ax = plt.subplots()
-    ax.scatter(x, y, **kwargs)
+    if transp is None:
+        colours = 'k'
+    else:
+        colours = np.zeros((len(transp), 4))
+        colours[:,3] = transp
+    ax.scatter(x, y, color=colours, lw=0, **kwargs)
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
     return fig, ax
@@ -162,14 +169,14 @@ def heatmap(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
             legend=None, **kwargs):
     """Plots a heatmap of z vs. x and y in a single frame."""
     fig, ax = plt.subplots()
-    ax.pcolormesh(x, y, z, rasterized=True, **kwargs)
+    ax.pcolormesh(x, y, z, rasterized=True, cmap=cm.wiridis, **kwargs)
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
     # should there be something for the cmap (z) range?
     return fig, ax
 
 
-def energyplot(lbl, y, wid=1, sep=1, rot=90, maxe=None):
+def energyplot(lbl, y, wid=1, sep=1, rot=90, maxe=None, grid=False):
     """Plots a connected bar plot used to represent potential energies."""
     fig, ax = plt.subplots()
 
@@ -177,12 +184,13 @@ def energyplot(lbl, y, wid=1, sep=1, rot=90, maxe=None):
     x1 = np.arange(len(y)) * (wid + sep)
     x2 = np.insert(x1 + wid, range(len(x1)), x1)
 
-    ax.plot(x2, yplot, zorder=0)
+    ax.plot(x2, yplot)
     for i in range(len(y[0])):
-        ax.hlines(y[:,i], x1, x1 + wid, linewidth=2)
+        ax.hlines(y[:,i], x1, x1 + wid, linewidth=2, zorder=3)
 
     ax.set_xticks(x1 + 0.5*wid)
     ax.set_xticklabels(lbl, rotation=rot)
+    ax.yaxis.grid(grid)
 
     _ax_set(ax, ylabel='Energy / eV', xlim=(x2[0] - wid, x2[-1] + wid),
             ylim=(-0.1) if maxe is None else (-0.1, maxe))

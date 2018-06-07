@@ -1,5 +1,6 @@
 """
-Routines for reading in FMS files and configuration files.
+Module for methods dealing with text input and output as well as
+general file management.
 """
 import os
 import numpy as np
@@ -9,8 +10,13 @@ from glob import glob
 def convert_str(string):
     """If possible, converts a string to an int, float, list of ints
     or list of floats."""
-    if string == 'None':
+    slower = string.lower()
+    if slower == 'none':
         return None
+    elif slower == 'true':
+        return True
+    elif slower == 'false':
+        return False
     elif ';' in string and ',' in string:
         # 2D list delimited by ';' followed by ','
         slist = [ln.split(',') for ln in string.split(';')]
@@ -61,20 +67,22 @@ def read_cfg(fname, reqvars=[]):
             else:
                 fvars[vv[0]] = convert_str(vv[1])
 
-    for ivar in reqvars:
-        if ivar not in fvars:
-            raise KeyError('Missing input variable: {}'.format(ivar))
+    for key in reqvars:
+        if key not in fvars:
+            raise KeyError('Missing required input variable: {}'.format(key))
 
     return fvars
 
 
-def cfg_update(defdict, fname, reqvars=[]):
+def cfg_update(defdict, fname):
     """Updates a dictionary of default variables with values from
     a configuration file."""
     if os.path.exists(fname):
-        defdict.update(read_cfg(fname))
-    elif reqvars != []:
-        raise KeyError('Missing required input variables')
+        new_dict = read_cfg(fname)
+        for key in new_dict:
+            if key not in defdict:
+                print('Ignoring unrecognized variable \''+key+'\'.')
+        defdict.update(new_dict)
 
 
 def get_fnames(matchex):
@@ -116,9 +124,11 @@ def read_dat(fname, dtype=float, skiprow=0, skipcol=0, labels=None,
 
 
 def write_dat(fname, data, labels=None, charwid=10, decwid=4):
-    """Writes an array of data to an output file."""
+    """Writes an array of floating point data to an output file."""
     with open(fname, 'w') as f:
         if labels is not None:
+            lblspace = [len(s) + 1 for s in labels]
+            charwid = max([charwid] + lblspace)
             f.write(''.join(['{:>{w}s}'.format(lbl, w=charwid) for
                              lbl in labels]) + '\n')
         for line in data:

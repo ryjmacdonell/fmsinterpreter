@@ -14,9 +14,9 @@ Input:
     directory_stem: str or list of str. The seed directories used to
         find the total number of seeds. Can use regular expressions
         recognized by glob.
-    trajectory_files: str or list of str. The trajectory filenames
-        containing population information. Can use regular expressions
-        recognized by glob.
+    traj_files: str or list of str. The trajectory filenames containing
+        population information. Can use regular expressions recognized
+        by glob.
     amplitude_data_name: str. The filename for the amplitude vs. time
         raw text data.
     amplitude_plot_name: str. The filename for the amplitude plot.
@@ -57,7 +57,7 @@ def main():
     nseed = len(fileio.get_fnames(inp['directory_stem']))
 
     # get trajectory filenames
-    traj_fnames = fileio.get_fnames(inp['trajectory_files'])
+    traj_fnames = fileio.get_fnames(inp['traj_files'])
 
     # set up time range
     time = np.arange(inp['tmin']/inp['time_conv'],
@@ -65,9 +65,8 @@ def main():
                      inp['fms_time_increment'])
 
     # read the amplitudes
-    tj_amps, tj_info = populations.read_amps(traj_fnames, time, inp['states'],
-                                             aconv=1./nseed)
-    amplitude = populations.total_amps(tj_amps, tj_info[:,2])
+    amplitude = populations.total_amps(traj_fnames, time, inp['states'],
+                                       aconv=1./nseed, noparent=True)
 
     # write to a data file
     fileio.write_dat(inp['amplitude_data_name'],

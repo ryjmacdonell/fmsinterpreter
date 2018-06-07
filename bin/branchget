@@ -13,7 +13,7 @@ Input:
     permute: 1d or 2d list of int. Sets the (1-ordered) atomic indices to
         be permuted. Suggested atoms are at symmetric rotating centres or
         possible migrating atoms (usually hydrogens).
-    test_geoms: str or list of str. Gives filenames of geometries to
+    test_trajs: str or list of str. Gives filenames of TrajDump files to
         test. May contain regular expressions recognized by glob.
 
 Output:
@@ -43,10 +43,11 @@ def main():
     ref_fnames = fileio.get_fnames(inp['ref_geoms'])
 
     # get test filenames
-    test_fnames = fileio.get_fnames(inp['test_geoms'])
+    test_fnames = fileio.get_fnames(inp['test_trajs'])
 
     # match tests onto refs
-    matched = branching.branching(ref_fnames, test_fnames, inp['states'])
+    matched = branching.branching(ref_fnames, test_fnames, inp['states'],
+                                  plist=inp['permute'], invert=inp['invert'])
 
     outdir = 'branch_s{:d}s{:d}'.format(*inp['states'])
     if not os.path.exists(outdir):

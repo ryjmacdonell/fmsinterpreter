@@ -1,7 +1,6 @@
 """
-FMS analysis routine for visualizing the adiabatic population as a
-function of time and fitting the population to a mono-, bi- or
-triexponential curve.
+Module for reading and interpreting adiabatic populations, including
+finding transferred population and fitting population curves.
 """
 import os
 import numpy as np
@@ -9,48 +8,71 @@ from scipy.optimize import curve_fit
 from fmsinterpreter import fileio
 
 
-def read_amps(fnames, times, states, aconv=1.):
+def read_amps(fnames, aconv=1.):
     """Reads the amplitudes of each trajectory at given times and returns
-    arrays of amplitudes, child state and parent state."""
-    amps = np.zeros((len(fnames), len(times)))
-    tjinfo = np.empty((len(fnames), 5), dtype=int)
-
+    list of arrays of amplitudes, times and trajectory info."""
+    amps = [np.empty(0) for fn in fnames]
+    times = [np.empty(0) for fn in fnames]
     for i, fname in enumerate(fnames):
-        tlocal, alocal = fileio.read_dat(fname, skiprow=1, usecols=(0,-2)).T
-        tjinfo[i] = get_spawn_info(fname)
-        #with open(fname) as f:
-        #    lines = [line.split() for line in f.readlines() if
-        #             'Time' not in line and line != '\n']
+        times[i], amps[i] = fileio.read_dat(fname, skiprow=1, usecols=(0,-2)).T
+        amps[i] *= aconv
 
-        #alldata = np.array(lines, dtype=float)
-        #tlocal = alldata[:,0]
-        #st = states.index(int(alldata[0,-1]) - 1)
-        #if st in states:
+    return amps, times
+
+
+def total_amps(fnames, times, states, aconv=1., noparent=False):
+    """Reads the trajectory amplitudes and sums them by their
+    adiabatic state label for set time bins."""
+    atraj, ttraj = read_amps(fnames, aconv=aconv)
+    itraj = read_tjinfo(fnames, noparent=noparent)
+    stamps = np.zeros((max(states)+1, len(times)))
+    for i in range(len(fnames)):
+        s = itraj[i,2]
+        tlocal = ttraj[i]
         for j, t in enumerate(times):
             if t > tlocal[-1]:
-                amps[i, j:] += alocal[len(tlocal)-1]
+                stamps[s,j:] += atraj[i][len(tlocal)-1]
                 break
             elif t >= tlocal[0]:
-                amps[i, j] += alocal[np.argmin(np.abs(tlocal - t))]
+                stamps[s,j] += atraj[i][np.argmin(np.abs(tlocal - t))]
 
-    return aconv*amps, tjinfo
+    return stamps
 
 
-def get_spawn_info(fname, first_lbl=1):
+def read_tjinfo(fnames, noparent=False):
+    """Reads the trajectory information for all files and returns
+    an array."""
+    tjinfo = np.empty((len(fnames), 5), dtype=int)
+    for i, fname in enumerate(fnames):
+        tjinfo[i] = get_spawn_info(fname, noparent=noparent)
+
+    return tjinfo
+
+
+def get_spawn_info(fname, first_lbl=1, noparent=False):
     """Reads the trajectory labels and states for parent and child of
-    a given trajectory."""
+    a given trajectory as well as the seed."""
     dsplit = fname.split('/')
     seed = int(dsplit[-2].split('.')[1])
     cid = int(dsplit[-1].split('.')[1])
-    if cid > first_lbl:
-        spawnf = fname.replace('TrajDump', 'Spawn').replace('trajectory',
-                                                            'spawn')
-        with open(spawnf, 'r') as f:
-            f.readline()
-            comment = f.readline().split()
-        cstate = int(comment[3]) - 1
-        pid = int(comment[6])
-        pstate = int(comment[9])
+    if cid > first_lbl and not noparent:
+        try:
+            spawnf = fname.replace('TrajDump', 'Spawn').replace('trajectory',
+                                                                'spawn')
+            with open(spawnf, 'r') as f:
+                f.readline()
+                comment = f.readline().split()
+            cstate = int(comment[3]) - 1
+            pid = int(comment[6])
+            pstate = int(comment[9]) - 1
+        except FileNotFoundError:
+            # assume it is also a parent
+            with open(fname, 'r') as f:
+                f.readline()
+                alldat = f.readline().split()
+            cstate = int(alldat[-1].split('.')[0]) - 1
+            pid = -1
+            pstate = first_lbl
     else:
         with open(fname, 'r') as f:
             f.readline()
@@ -62,16 +84,14 @@ def get_spawn_info(fname, first_lbl=1):
     return np.array([seed, cid, cstate, pid, pstate], dtype=int)
 
 
-def total_amps(amps, states):
-    """Sums a set of amplitudes from different trajectories by their
-    adiabatic state label."""
-    stamps = np.zeros((max(states)+1, amps.shape[1]))
-    for i, s in enumerate(states):
-        stamps[s] += amps[i]
-    return stamps
+def state_mask(traj_info, states):
+    """Returns a boolean mask for states that have trajectory info
+    matching given state indices."""
+    return np.logical_and(traj_info[:,2] == states[1],
+                          traj_info[:,4] == states[0])
 
 
-def integ_spawn_pop(amps, traj_info):
+def integ_spawn_pop(amps, times, traj_info, maxt=400):
     """Returns the population transferred at each spawning event using
     the integration method.
 
@@ -87,17 +107,26 @@ def integ_spawn_pop(amps, traj_info):
     where int represents integration over all time and sgn represents
     the sign function.
     """
-    ti = np.argmax(amps > 1e-10, axis=1) - 1
     ntraj = len(amps)
     pops = np.zeros(ntraj)
 
     for i in range(ntraj):
         if traj_info[i,3] >= 0:
-            # get the child and parent populations
-            pc = amps[i,ti:ti+400]
+            # get parent trajectory index and match times
             mask = np.logical_and(traj_info[:,0] == traj_info[i,0],
                                   traj_info[:,1] == traj_info[i,3])
-            pp = amps[np.argmax(mask),ti:ti+400]
+            if not np.any(mask):
+                raise ValueError('Parent with index {:d}'.format(traj_info[i,3]) +
+                                 ' not found for trajectory ' +
+                                 '{:d} in seed {:d}.'.format(traj_info[i,1],
+                                                             traj_info[i,0]))
+            j = np.argmax(mask)
+            tshft = np.argmin(np.abs(times[j] - times[i][0]))
+            lm = min(len(times[i]), len(times[j])-tshft, maxt)
+
+            # get the child and parent populations
+            pc = amps[i][:lm]
+            pp = amps[j][tshft:lm+tshft]
 
             # take the derivatives
             dpc = pc[1:] - pc[:-1]
@@ -109,12 +138,12 @@ def integ_spawn_pop(amps, traj_info):
             dp = np.sign(dpc) * np.sqrt(dp2)
 
             # integrate from the inital child population
-            pops[i] = np.sum(dp)
+            pops[i] = pc[0] + np.sum(dp)
 
     return pops
 
 
-def thrsh_spawn_pop(amps, traj_info, inthrsh=5e-3, fithrsh=1e-3, nbuf=4):
+def thrsh_spawn_pop(amps, times, traj_info, inthrsh=5e-4, fithrsh=1e-4, nbuf=4):
     """Returns the population tranferred at each spawning event using
     the threshold method.
 
@@ -122,20 +151,22 @@ def thrsh_spawn_pop(amps, traj_info, inthrsh=5e-3, fithrsh=1e-3, nbuf=4):
     change in the population, and thus a spike in its derivative. When
     dp/dt goes above a specified value, that is marked at the inital time
     and a final time is found where dp/dt falls below another given
-    threshold. To correct for possible turning points, a buffer window
+    threshold.
+
+    To correct for possible turning points, a buffer window
     can be chosen such that all points in the buffer must fall below the
     threshold before the final time is chosen.
     """
-    ti = np.argmax(amps > 1e-10, axis=1) - 1
     ntraj = len(amps)
     pops = np.zeros(ntraj)
 
     for i in range(ntraj):
         if traj_info[i,3] >= 0:
-            p = amps[i,ti:ti+400]
+            p = amps[i]
+            t = times[i]
 
             # get the derivative, population range and number of time steps
-            dp = p[1:] - p[:-1]
+            dp = (p[1:] - p[:-1]) / (t[1:] - t[:-1])
             rng = np.ptp(p)
             nt = len(dp)
 

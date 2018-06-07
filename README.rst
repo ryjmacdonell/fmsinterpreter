@@ -9,17 +9,20 @@ To add to your local Python packages, clone the repository and use setup.py
 to install via::
 
     $ git clone https://github.com/ryjmacdonell/fmsinterpreter.git
+    $ cd fmsinterpreter
     $ python setup.py install
 
-This will also install several command line scripts located in ``bin/``. In
-particular, the ``getdefault`` script followed a script name will generate
-an input file with the default inputs.
+This will also install several command line scripts located in ``bin/``.
 
 Usage
 -----
 The command line scripts will readily interpret FMS data based on common
 tasks such as plotting adiabatic populations or showing trends in spawn
-geometries. For more advanced tasks, FMSinterpreter modules can be
+geometries. All scripts read a namelist input file. The scripts ``getdefault``
+and ``geninput`` can be used to create a default input for given script(s)
+and to query for input for given script(s), respectively.
+
+For more advanced tasks, FMSinterpreter modules can be
 incorporated into Python scripts via::
 
     from fmsinterpreter import [module]

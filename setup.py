@@ -29,6 +29,7 @@ setup(
         'bin/getdefault',
         'bin/histplot',
         'bin/pesplot',
+        'bin/popassign',
         'bin/popplot',
         'bin/scatterplot',
         'bin/trpesplot'
