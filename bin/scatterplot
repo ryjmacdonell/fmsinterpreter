@@ -32,7 +32,6 @@ import numpy as np
 import geomtools.molecule as gm
 from fmsinterpreter import fileio
 from fmsinterpreter import default
-from fmsinterpreter import branching
 from fmsinterpreter import populations
 from fmsinterpreter import plot
 

@@ -10,7 +10,6 @@ import os
 
 
 inpname = dict(
-    branchget = 'branch.inp',
     contourplot = 'contour.inp',
     denplot = 'den.inp',
     histplot = 'hist.inp',
@@ -20,14 +19,6 @@ inpname = dict(
     popassign = 'assign.inp',
     popplot = 'pop.inp'
                )
-
-branchget = dict(
-    states = [1, 0],
-    ref_geoms = '*.xyz',
-    invert = True,
-    permute = None,
-    test_trajs = '../seed.*/TrajDump.[0-9]'
-                 )
 
 contourplot = dict(
     nstates = 1,
@@ -107,6 +98,8 @@ popassign = dict(
     ref_geoms = None,
     permute = None,
     symm_equiv = None,
+    mass_wgt = False,
+    dir_name = 'assign',
     pop_fname = 'branch.dat'
                  )
 

@@ -16,15 +16,17 @@ Input:
         possible migrating atoms (usually hydrogens).
     symm_equiv: 1d or 2d list of int. Sets groups of atomic indices to be
         permuted due to symmetry of the molecule.
+    mass_wgt: bool. Specifies whether atoms are weighted by mass or
+        equally weighted.
+    dir_name: str. The directory name for output files.
     pop_fname: str. The filename for printing branching ratios.
 
 Output:
+    [dir_name]/: Directory for output files specified below.
     [spawn_fname]: A file with all spawn geometries
-    branch_s[x]s[y]/: Directory for geometries corresponding to spawning
-        from state x to state y. Contains the files below.
     [pop_fname]: Summary of the percent population passing in the region of
         a given reference geometry. Given by labels in filenames.
-    [ref_geoms]: XYZ files, each containing all geometries matched to a
+    [ref_geoms]: XYZ files, each containing the geometries matched to a
         given reference.
 """
 import os
@@ -63,6 +65,13 @@ def main():
     for i in range(bund.get_nmol()):
         bund.molecules[i].comment += ' pop {:10.6f}'.format(pops[i])
 
+    # create/clean the output directory
+    if not os.path.exists(inp['dir_name']):
+        os.makedirs(inp['dir_name'])
+    else:
+        for fname in os.listdir(inp['dir_name']):
+            os.remove(inp['dir_name']+'/'+fname)
+
     if inp['spawn_fname'] is not None:
         # write all spawns to a single file
         bund.write(inp['spawn_fname'])
@@ -73,22 +82,21 @@ def main():
         nref = len(ref_fnames)
         refnames = [f.split('/')[-1] for f in ref_fnames]
         ref_bund = gm.import_bundle(ref_fnames)
-        outdir = 'branch_s{:d}s{:d}'.format(*inp['states'])
-        if not os.path.exists(outdir):
-            os.makedirs(outdir)
+        if inp['mass_wgt']:
+            wgt = bund.molecules[0].get_mass()
+            matched = bund.match_to_ref(ref_bund, plist=inp['permute'],
+                                        equiv=inp['symm_equiv'], wgt=wgt)
         else:
-            for fname in os.listdir(outdir):
-                os.remove(outdir+'/'+fname)
-        matched = bund.match_to_ref(ref_bund, plist=inp['permute'],
-                                    equiv=inp['symm_equiv'])
+            matched = bund.match_to_ref(ref_bund, plist=inp['permute'],
+                                        equiv=inp['symm_equiv'])
         b_pop = np.zeros(nref)
         for i, b in enumerate(matched):
             if b.get_nmol() > 0:
-                b.write(outdir+'/'+refnames[i])
+                b.write(inp['dir_name']+'/'+refnames[i])
                 b_pop[i] = np.sum([float(mol.get_comment().split()[-1]) for mol
                                    in b.get_molecules()])
         if inp['pop_fname'] is not None:
-            fn = outdir + '/' + inp['pop_fname']
+            fn = inp['dir_name'] + '/' + inp['pop_fname']
             total_pop = np.sum(pops)
             dat = np.hstack((total_pop, b_pop))
             dat = np.vstack((dat, dat/total_pop))
