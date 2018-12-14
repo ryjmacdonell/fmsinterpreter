@@ -20,23 +20,59 @@ def read_amps(fnames, aconv=1.):
     return amps, times
 
 
-def total_amps(fnames, times, states, aconv=1., noparent=False):
+def read_ndat(fnames, nstates, aconv=1.):
+    """Reads the amplitudes directly from N.dat and returns a list of
+    amplitudes and times."""
+    amps = [np.empty((nstates, 0)) for fn in fnames]
+    times = [np.empty(0) for fn in fnames]
+    for i, fname in enumerate(fnames):
+        rawdat = fileio.read_dat(fname, skiprow=1).T
+        times[i] = rawdat[0]
+        amps[i] = np.empty((nstates, len(times[i])))
+        for j in range(nstates):
+            amps[i][j] = rawdat[j+1] * aconv
+
+    return amps, times
+
+
+def total_amps(fnames, times, nstates, aconv=1.):
     """Reads the trajectory amplitudes and sums them by their
     adiabatic state label for set time bins."""
-    atraj, ttraj = read_amps(fnames, aconv=aconv)
-    itraj = read_tjinfo(fnames, noparent=noparent)
-    stamps = np.zeros((max(states)+1, len(times)))
+    aseed, tseed = read_ndat(fnames, nstates, aconv=aconv)
+    stamps = np.zeros((len(fnames), nstates, len(times)))
     for i in range(len(fnames)):
-        s = itraj[i,2]
-        tlocal = ttraj[i]
+        tlocal = tseed[i]
         for j, t in enumerate(times):
             if t > tlocal[-1]:
-                stamps[s,j:] += atraj[i][len(tlocal)-1]
+                stamps[i,:,j:] += aseed[i][:,len(tlocal)-1:]
                 break
-            elif t >= tlocal[0]:
-                stamps[s,j] += atraj[i][np.argmin(np.abs(tlocal - t))]
+            elif t > tlocal[0] - 1e-6:
+                stamps[i,:,j] += aseed[i][:,np.argmin(np.abs(tlocal - t))]
 
     return stamps
+
+
+def error_amps(times, stamps, nstates, nboot=1000, bthrsh=1e-3):
+    """Calculates the amplitude errors using the bootstrap method.
+
+    A random set of seeds are sampled until the bootstrap average
+    converges to the true average or the maximum number of iterations
+    is reached.
+    """
+    nseed = len(stamps)
+    bootsamp = np.random.randint(nseed, size=(nboot, nseed))
+    tavg = np.sum(stamps, axis=0)
+    bavg = np.sum(stamps[bootsamp[0]], axis=0)
+    bdel = np.zeros_like(stamps[0])
+    for i in range(1, nboot):
+        bstamp = np.sum(stamps[bootsamp[i]], axis=0)
+        ei = bstamp - bavg
+        bavg += ei / (i + 1)
+        bdel += ei * (bstamp - bavg)
+        if np.all(np.abs(bavg - tavg) < bthrsh):
+            break
+    print(i+1)
+    return bavg, np.sqrt(bdel / i)
 
 
 def read_tjinfo(fnames, noparent=False):
@@ -84,14 +120,24 @@ def get_spawn_info(fname, first_lbl=1, noparent=False):
     return np.array([seed, cid, cstate, pid, pstate], dtype=int)
 
 
-def state_mask(traj_info, states):
+def state_mask(traj_info, statei=None, statef=None):
     """Returns a boolean mask for states that have trajectory info
-    matching given state indices."""
-    return np.logical_and(traj_info[:,2] == states[1],
-                          traj_info[:,4] == states[0])
+    matching given state indices and aren't initial trajectories."""
+    ntraj = len(traj_info)
+    mask0 = traj_info[:,3] >= 0
+    if statei is not None:
+        mask1 = traj_info[:,4] == statei
+    else:
+        mask1 = np.ones(ntraj, dtype=bool)
+    if statef is not None:
+        mask2 = traj_info[:,2] == statef
+    else:
+        mask2 = np.ones(ntraj, dtype=bool)
+    mask12 = np.logical_and(mask1, mask2)
+    return np.logical_and(mask0, mask12)
 
 
-def integ_spawn_pop(amps, times, traj_info, maxt=400):
+def integ_spawn_pop(amps, times, traj_info, statei=None, statef=None, maxt=400):
     """Returns the population transferred at each spawning event using
     the integration method.
 
@@ -109,38 +155,39 @@ def integ_spawn_pop(amps, times, traj_info, maxt=400):
     """
     ntraj = len(amps)
     pops = np.zeros(ntraj)
+    mask = state_mask(traj_info, statei=statei, statef=statef)
+    irange = np.arange(ntraj)[mask]
 
-    for i in range(ntraj):
-        if traj_info[i,3] >= 0:
-            # get parent trajectory index and match times
-            mask = np.logical_and(traj_info[:,0] == traj_info[i,0],
-                                  traj_info[:,1] == traj_info[i,3])
-            if not np.any(mask):
-                raise ValueError('Parent with index {:d}'.format(traj_info[i,3]) +
-                                 ' not found for trajectory ' +
-                                 '{:d} in seed {:d}.'.format(traj_info[i,1],
-                                                             traj_info[i,0]))
-            j = np.argmax(mask)
-            tshft = np.argmin(np.abs(times[j] - times[i][0]))
-            lm = min(len(times[i]), len(times[j])-tshft, maxt)
+    for i in irange:
+        # get parent trajectory index and match times
+        pmask = np.logical_and(traj_info[:,0] == traj_info[i,0],
+                               traj_info[:,1] == traj_info[i,3])
+        if not np.any(pmask):
+            raise ValueError('Parent with index {:d}'.format(traj_info[i,3]) +
+                             ' not found for trajectory ' +
+                             '{:d} in seed {:d}.'.format(traj_info[i,1],
+                                                         traj_info[i,0]))
+        j = np.argmax(pmask)
+        tshft = np.argmin(np.abs(times[j] - times[i][0]))
+        lm = min(len(times[i]), len(times[j])-tshft, maxt)
 
-            # get the child and parent populations
-            pc = amps[i][:lm]
-            pp = amps[j][tshft:lm+tshft]
+        # get the child and parent populations
+        pc = amps[i][:lm]
+        pp = amps[j][tshft:lm+tshft]
 
-            # take the derivatives
-            dpc = pc[1:] - pc[:-1]
-            dpp = pp[1:] - pp[:-1]
+        # take the derivatives
+        dpc = pc[1:] - pc[:-1]
+        dpp = pp[1:] - pp[:-1]
 
-            # multiply the derivatives, take the sqrt and unwrap the phase
-            dp2 = -dpc*dpp
-            dp2[dp2 < 0] = 0
-            dp = np.sign(dpc) * np.sqrt(dp2)
+        # multiply the derivatives, take the sqrt and unwrap the sign
+        dp2 = -dpc*dpp
+        dp2[dp2 < 0] = 0
+        dp = np.sign(dpc) * np.sqrt(dp2)
 
-            # integrate from the inital child population
-            pops[i] = pc[0] + np.sum(dp)
+        # integrate from the inital child population
+        pops[i] = pc[0] + np.sum(dp)
 
-    return pops
+    return pops, mask
 
 
 def thrsh_spawn_pop(amps, times, traj_info, inthrsh=5e-4, fithrsh=1e-4, nbuf=4):

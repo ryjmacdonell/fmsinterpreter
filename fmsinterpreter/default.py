@@ -102,7 +102,12 @@ pesplot = dict(
 
 popassign = dict(
     traj_files = '../seed.*/TrajDump.*',
-    spawn_fname = 'spawn.xyz'
+    spawn_fname = 'spawn.xyz',
+    states = None,
+    ref_geoms = None,
+    permute = None,
+    symm_equiv = None,
+    pop_fname = 'branch.dat'
                  )
 
 popplot = dict(
@@ -112,8 +117,12 @@ popplot = dict(
     tmin = 0.0,
     tmax = 1000.0,
     directory_stem = '../seed.*',
-    traj_files = '../seed.*/TrajDump.*',
+    ndat_files = '../seed.*/N.dat',
+    calc_err = False,
+    n_bootstrap = 100000,
+    boot_thrsh = 1e-3,
     amplitude_data_name = 'pop.dat',
+    amplitude_err_name = 'pop.err',
     amplitude_plot_name = 'pop.pdf',
     fit_function = None,
     p0 = [10, 50],

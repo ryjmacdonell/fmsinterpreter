@@ -10,9 +10,10 @@ import matplotlib.pyplot as plt
 from cycler import cycler
 import customcolour.cmap as cm
 plt.rc('axes', axisbelow=True)
+plt.rc('legend', edgecolor='none')
 
 
-def set_theme(color=['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd',
+def set_theme(color=['#2ca02c', '#1f77b4', '#d62728', '#9467bd', '#ff7f0e',
                      '#8c564b', '#e377c2', '#7f7f7f', '#bcbd22', '#17becf'],
               linestyle=['-', '--', ':', '-.'],
               marker=['', '.', 'o', 's', '^', '*', '+', 'x'],
@@ -127,10 +128,13 @@ def Figure(object):
             return np.atleast_2d(ind)
 
 
-def lineplot(x, y, xlabel='x', ylabel='y', xlim=None, ylim=None,
+def lineplot(x, y, err=None, xlabel='x', ylabel='y', xlim=None, ylim=None,
              legend=None, **kwargs):
     """Plots a line from data y vs. x in a single frame."""
     fig, ax = plt.subplots()
+    if err is not None:
+        for i in range(y.shape[1]):
+            ax.fill_between(x, y[:,i] + err[:,i], y[:,i] - err[:,i], alpha=0.2)
     ax.plot(x, y, **kwargs)
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
@@ -235,3 +239,6 @@ def _get_lim(q, qlim):
         return min(q), max(q)
     else:
         return qlim
+
+
+set_theme()

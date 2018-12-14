@@ -4,15 +4,32 @@ Command line script for making a list of spawn geometries with spawn
 populations
 
 Input:
-    traj_files: str or list of str. The trajectory filenames used for
+    traj_files: str or list of str. The spawn filenames used for
         populations and geometries.
     spawn_fname: the name of the outputted spawn geometry file
+    states: list of int, len 2. Defines the initial and final states
+        for computing the branching ratio.
+    ref_geoms: str or list of str. Gives the filenames of reference
+        geometries. May contain regular expressions recognized by glob.
+    permute: 1d or 2d list of int. Sets the (1-ordered) atomic indices to
+        be permuted. Suggested atoms are at symmetric rotating centres or
+        possible migrating atoms (usually hydrogens).
+    symm_equiv: 1d or 2d list of int. Sets groups of atomic indices to be
+        permuted due to symmetry of the molecule.
+    pop_fname: str. The filename for printing branching ratios.
 
 Output:
     [spawn_fname]: A file with all spawn geometries
+    branch_s[x]s[y]/: Directory for geometries corresponding to spawning
+        from state x to state y. Contains the files below.
+    [pop_fname]: Summary of the percent population passing in the region of
+        a given reference geometry. Given by labels in filenames.
+    [ref_geoms]: XYZ files, each containing all geometries matched to a
+        given reference.
 """
+import os
 import numpy as np
-from geomtools import molecule
+import geomtools.molecule as gm
 from fmsinterpreter import fileio
 from fmsinterpreter import default
 from fmsinterpreter import populations
@@ -22,25 +39,60 @@ def main():
     inp = default.popassign
     fileio.cfg_update(inp, default.inpname['popassign'])
 
-    # get spawn filenames
+    # get traj filenames
     fnames = fileio.get_fnames(inp['traj_files'])
-    traj_info = populations.read_tjinfo(fnames)
 
+    # get traj data and populations
+    traj_info = populations.read_tjinfo(fnames)
     amps, times = populations.read_amps(fnames)
-    pops = populations.integ_spawn_pop(amps, times, traj_info)
+    if inp['states'] is None:
+        pops, mask = populations.integ_spawn_pop(amps, times, traj_info)
+    else:
+        pops, mask = populations.integ_spawn_pop(amps, times, traj_info,
+                                                 *inp['states'])
     pops[pops < 0] = 0
 
-    # get spawn files
-    mask = traj_info[:,3] >= 0
+    # remove initial trajectory and wrong state info
+    pops = pops[mask]
     fnames = [fnames[i] for i in range(len(fnames)) if mask[i]]
+
+    # get spawn files
     spawnf = [f.replace('TrajDump', 'Spawn').replace('trajectory','spawn') for
               f in fnames]
-    pops = pops[mask]
-    bund = molecule.import_bundle(spawnf, hascom=True)
-    for i in range(bund.nmol):
+    bund = gm.import_bundle(spawnf, hascom=True)
+    for i in range(bund.get_nmol()):
         bund.molecules[i].comment += ' pop {:10.6f}'.format(pops[i])
 
-    bund.write(inp['spawn_fname'])
+    if inp['spawn_fname'] is not None:
+        # write all spawns to a single file
+        bund.write(inp['spawn_fname'])
+
+    if inp['ref_geoms'] is not None:
+        # find matching geometries and branching ratios
+        ref_fnames = fileio.get_fnames(inp['ref_geoms'])
+        nref = len(ref_fnames)
+        refnames = [f.split('/')[-1] for f in ref_fnames]
+        ref_bund = gm.import_bundle(ref_fnames)
+        outdir = 'branch_s{:d}s{:d}'.format(*inp['states'])
+        if not os.path.exists(outdir):
+            os.makedirs(outdir)
+        else:
+            for fname in os.listdir(outdir):
+                os.remove(outdir+'/'+fname)
+        matched = bund.match_to_ref(ref_bund, plist=inp['permute'],
+                                    equiv=inp['symm_equiv'])
+        b_pop = np.zeros(nref)
+        for i, b in enumerate(matched):
+            if b.get_nmol() > 0:
+                b.write(outdir+'/'+refnames[i])
+                b_pop[i] = np.sum([float(mol.get_comment().split()[-1]) for mol
+                                   in b.get_molecules()])
+        if inp['pop_fname'] is not None:
+            fn = outdir + '/' + inp['pop_fname']
+            total_pop = np.sum(pops)
+            dat = np.hstack((total_pop, b_pop))
+            dat = np.vstack((dat, dat/total_pop))
+            fileio.write_dat(fn, dat, labels=['Total']+refnames)
 
 
 if __name__ == '__main__':

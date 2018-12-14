@@ -29,7 +29,7 @@ Output:
         scatter plot.
 """
 import numpy as np
-from geomtools import molecule
+import geomtools.molecule as gm
 from fmsinterpreter import fileio
 from fmsinterpreter import default
 from fmsinterpreter import branching
@@ -61,7 +61,7 @@ def main():
     geom_fnames = [fn.replace('TrajDump','Spawn').replace('trajectory','spawn')
                    for fn in fnames]
     geom_fnames = np.array(geom_fnames)[mask]
-    all_geoms = molecule.import_bundle(geom_fnames)
+    all_geoms = gm.import_bundle(geom_fnames)
 
     # get coordinates
     x = all_geoms.get_coord(inp['xcoord'], inp['xinds'], units=inp['xunits'],

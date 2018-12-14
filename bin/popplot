@@ -14,11 +14,19 @@ Input:
     directory_stem: str or list of str. The seed directories used to
         find the total number of seeds. Can use regular expressions
         recognized by glob.
-    traj_files: str or list of str. The trajectory filenames containing
+    ndat_files: str or list of str. The data filenames containing
         population information. Can use regular expressions recognized
         by glob.
+    calc_err: boolean. Whether or not bootstrap errors should be
+        calculated and plotted/written to a file.
+    n_bootstrap: int. The maximum number of bootstrap iterations to be
+        performed in order to determine errors.
+    boot_thrsh: float. The smallest difference between mean and bootstrap
+        mean to achieve convergence.
     amplitude_data_name: str. The filename for the amplitude vs. time
         raw text data.
+    amplitude_err_name: str. The filename for the boostrap error vs.
+        time raw text data.
     amplitude_plot_name: str. The filename for the amplitude plot.
     fit_function: str. The name of the function used to fit the
         amplitudes (exp, biexp, triexp).
@@ -32,6 +40,8 @@ Input:
 Output:
     [amplitude_data_name]: The raw text data of total adiabatic amplitudes
         vs. time.
+    [amplitude_err_name]: The raw text file containing bootstrap errors on
+        total adiabatic amplitudes vs. time.
     [amplitude_plot_name]: A matplotlib-generated graphics file of the
         desired population plot (only if amplitude_plot_name is not None).
     [fit_data_name]: A raw text file of fit parameters (only if fit_function
@@ -56,8 +66,8 @@ def main():
     # get number of seeds
     nseed = len(fileio.get_fnames(inp['directory_stem']))
 
-    # get trajectory filenames
-    traj_fnames = fileio.get_fnames(inp['traj_files'])
+    # get n.dat filenames
+    ndat_fnames = fileio.get_fnames(inp['ndat_files'])
 
     # set up time range
     time = np.arange(inp['tmin']/inp['time_conv'],
@@ -65,13 +75,30 @@ def main():
                      inp['fms_time_increment'])
 
     # read the amplitudes
-    amplitude = populations.total_amps(traj_fnames, time, inp['states'],
-                                       aconv=1./nseed, noparent=True)
+    ns = max(inp['states']) + 1
+    amplitude = populations.total_amps(ndat_fnames, time, ns,
+                                       aconv=1./nseed)
+
+    # calculate bootstrap error
+    if inp['calc_err']:
+        #aerr = np.std(nseed*amplitude, axis=0)
+        avg, aerr = populations.error_amps(time, amplitude, ns,
+                                           nboot=inp['n_bootstrap'],
+                                           bthrsh=inp['boot_thrsh'])
+        aerrT = aerr.T
+    else:
+        aerrT = None
+    amplitude = np.sum(amplitude, axis=0)
 
     # write to a data file
     fileio.write_dat(inp['amplitude_data_name'],
                      np.vstack((time * inp['time_conv'], amplitude)).T,
                      labels=['Time/fs'] + ['S'+str(i) for i in inp['states']])
+    if inp['calc_err']:
+        fileio.write_dat(inp['amplitude_err_name'],
+                         np.vstack((time * inp['time_conv'], aerr)).T,
+                         labels=['Time/fs'] + ['S'+str(i) for i in inp['states']],
+                         fmttyp='e')
 
     # fit the amplitudes
     if inp['fit_function'] is not None:
@@ -92,12 +119,13 @@ def main():
 
     # plot the amplitudes
     if inp['amplitude_plot_name'] is not None:
-        labels = ['S'+str(i) for i in inp['states']]
-        fig, ax = plot.lineplot(time*inp['time_conv'], amplitude.T,
+        labels = ['$S_{:d}$'.format(i) for i in inp['states']]
+        fig, ax = plot.lineplot(time*inp['time_conv'], amplitude.T, err=aerrT,
                                 xlabel='Time / fs',
                                 ylabel='Adiabatic population',
                                 xlim='range', ylim=(0,1),
                                 legend=labels)
+        #ax.plot(time*inp['time_conv'], avg.T)
         plot.save(inp['amplitude_plot_name'], figure=fig)
 
 

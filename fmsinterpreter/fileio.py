@@ -123,14 +123,15 @@ def read_dat(fname, dtype=float, skiprow=0, skipcol=0, labels=None,
         return data
 
 
-def write_dat(fname, data, labels=None, charwid=10, decwid=4):
+def write_dat(fname, data, labels=None, charwid=12, decwid=4, fmttyp='f'):
     """Writes an array of floating point data to an output file."""
     with open(fname, 'w') as f:
+        nlin = data.shape[1]
         if labels is not None:
             lblspace = [len(s) + 1 for s in labels]
             charwid = max([charwid] + lblspace)
-            f.write(''.join(['{:>{w}s}'.format(lbl, w=charwid) for
-                             lbl in labels]) + '\n')
+            f.write((nlin * '{:>{w}s}').format(*labels, w=charwid) + '\n')
         for line in data:
-            f.write(''.join(['{:{w}.{d}f}'.format(num, w=charwid, d=decwid) for
-                             num in line]) + '\n')
+            nlin = len(line)
+            f.write((nlin * '{:{w}.{d}{t}}').format(*line, w=charwid, d=decwid,
+                                                    t=fmttyp) + '\n')
