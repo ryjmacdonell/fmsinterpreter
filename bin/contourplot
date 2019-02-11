@@ -1,1 +1,65 @@
 #!/usr/bin/python
+"""
+Console script for plotting potential energy surface contours.
+
+Input:
+    nstates: int. Number of states in the given input file.
+    istate: int. The state index to plot as given in the input file ordering.
+    infname: str. The input filename containing two coordinate labels
+        and an energy per line. Multiple lines with the same coordinate
+        labels are interpreted as different states.
+    eshift: float. The amount (in unconverted units, i.e. a.u.) with which
+        to substract from all energies. Generally the energy of the S0
+        global minimum.
+    econv: float. The conversion factor with which all energies are
+        multiplied.
+    xpts: int. The number of points along the x coordinate as given in the
+        input file.
+    ypts: int. The number of points along the y coordinate as given in the
+        input file.
+    xshift: float. A number added to all x coordinates.
+    yshift: float. A number added to all y coordinates.
+    xfac: float. A number with which all x coordinates are multiplied.
+    yfac: float. A number with which all y coordinates are multiplied.
+    xlabel: str. The label for the x coordinate on the contour plot.
+    ylabel: str. The label for the y coordinate on the contour plot.
+    xmeci: float or list of float. The x positions of minimum-energy
+        conical intersections labeled on the contour plot.
+    ymeci: float or list of float. The y positions of minimum-energy
+        conical intersections labeled on the contour plot.
+    plot_name: str. The plot filename.
+
+Output:
+    [plot_name]: A matplotlib-generated graphics file of the desired
+        contour plot.
+"""
+import numpy as np
+from fmsinterpreter import fileio
+from fmsinterpreter import default
+from fmsinterpreter import plot
+
+
+def main():
+    inp = default.contourplot
+    fileio.cfg_update(inp, default.inpname['contourplot'])
+
+    # import plot data
+    data = fileio.read_dat(inp['infname'])
+
+    # extract the energies and axis values
+    newdata = data.reshape(inp['xpts'], inp['ypts'],
+                           inp['nstates'], inp['nstates'])
+    energy = (newdata[:,:,:,2] - inp['eshift']) * inp['econv']
+    energy = energy[:,:,inp['istate']]
+    x = newdata[:,0,0,0]
+    y = newdata[0,:,0,1]
+
+    # make contour plot
+    fig, ax = plot.contour(x, y, energy, xlabel=inp['xlabel'],
+                           ylabel=inp['ylabel'], xlim='range', ylim='range',
+                           colors='k')
+    plot.save(inp['plot_name'])
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,32 @@
+#!/usr/bin/env python
+"""
+Command line script for producing a given input file from the command line.
+
+If multiple script names are given, they can be filled out in the order
+provided.
+"""
+from fmsinterpreter import default
+from sys import argv
+
+
+def main():
+    """The main geninput routine."""
+    print('==================================='
+          '\n                                   '
+          '\nFMSinterpreter input file generator'
+          '\n                                   '
+          '\n===================================')
+    if len(argv) < 2:
+        raise TypeError('Include names of FMSinterpreter console scripts as '
+                        'argument variables to generate input files.')
+
+    for routine in argv[1:]:
+        try:
+            print('\n-------- '+default.inpname[routine]+' --------')
+            default.generate_input(routine)
+        except KeyError:
+            print('UserWarning: \''+routine+'\' is not a valid script name.')
+
+
+if __name__ == '__main__':
+    main()

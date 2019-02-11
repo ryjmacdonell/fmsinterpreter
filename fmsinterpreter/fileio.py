@@ -1,5 +1,6 @@
 """
-Routines for reading in FMS files and configuration files.
+Module for methods dealing with text input and output as well as
+general file management.
 """
 import os
 import numpy as np
@@ -9,8 +10,13 @@ from glob import glob
 def convert_str(string):
     """If possible, converts a string to an int, float, list of ints
     or list of floats."""
-    if string == 'None':
+    slower = string.lower()
+    if slower == 'none':
         return None
+    elif slower == 'true':
+        return True
+    elif slower == 'false':
+        return False
     elif ';' in string and ',' in string:
         # 2D list delimited by ';' followed by ','
         slist = [ln.split(',') for ln in string.split(';')]
@@ -54,27 +60,29 @@ def read_cfg(fname, reqvars=[]):
     # remove spaces and comments and get inputs
     lines = [ln.partition('#')[0] for ln in lines]
     for ln in lines:
-        if ln != '\n':
+        if ln not in ['\n', '']:
             vv = [string.strip() for string in ln.split('=', 1)]
             if len(vv) < 2:
                 raise ValueError('Variables must be set by \'=\'')
             else:
                 fvars[vv[0]] = convert_str(vv[1])
 
-    for ivar in reqvars:
-        if ivar not in fvars:
-            raise KeyError('Missing input variable: {}'.format(ivar))
+    for key in reqvars:
+        if key not in fvars:
+            raise KeyError('Missing required input variable: {}'.format(key))
 
     return fvars
 
 
-def cfg_update(defdict, fname, reqvars=[]):
+def cfg_update(defdict, fname):
     """Updates a dictionary of default variables with values from
     a configuration file."""
-     if os.path.exists(fname):
-        defdict.update(read_cfg(fname))
-     elif reqvars != []:
-        raise KeyError('Missing required input variables')
+    if os.path.exists(fname):
+        new_dict = read_cfg(fname)
+        for key in new_dict:
+            if key not in defdict:
+                print('Ignoring unrecognized variable \''+key+'\'.')
+        defdict.update(new_dict)
 
 
 def get_fnames(matchex):
@@ -90,12 +98,40 @@ def get_fnames(matchex):
     return fnames
 
 
-def write_dat(fname, data, labels=None, charwid=10, decwid=4):
-    """Writes an array of data to an output file."""
+def read_dat(fname, dtype=float, skiprow=0, skipcol=0, labels=None,
+             usecols=None):
+    """Reads an array of data from an input file.
+
+    Specifying labels as 'row' or 'col' will return the last skipped
+    row/column as well as the data array. The 'usecols' keyword will
+    only use the specified columns and takes precedence over 'skipcol'.
+    """
+    data = np.genfromtxt(fname, dtype=dtype, skip_header=skiprow,
+                         usecols=usecols)
+    if usecols is None:
+        data = data[:,skipcol:]
+    if labels == 'row' and skiprow > 0:
+        with open(fname, 'r') as f:
+            for i in range(skiprow):
+                labels = np.array(f.readline().split())
+        return data, labels
+    elif labels == 'col' and skipcol > 0:
+        labels = np.genfromtxt(fname, dtype=str, skip_header=skiprow,
+                               usecols=skipcol-1)
+        return data, labels
+    else:
+        return data
+
+
+def write_dat(fname, data, labels=None, charwid=12, decwid=4, fmttyp='f'):
+    """Writes an array of floating point data to an output file."""
     with open(fname, 'w') as f:
+        nlin = data.shape[1]
         if labels is not None:
-            f.write(''.join(['{:{w}s}'.format(lbl, w=charwid) for
-                             lbl in labels]) + '\n')
+            lblspace = [len(s) + 1 for s in labels]
+            charwid = max([charwid] + lblspace)
+            f.write((nlin * '{:>{w}s}').format(*labels, w=charwid) + '\n')
         for line in data:
-            f.write(''.join(['{:{w}.{d}f}'.format(num, w=charwid, d=decwid) for
-                             num in line]) + '\n')
+            nlin = len(line)
+            f.write((nlin * '{:{w}.{d}{t}}').format(*line, w=charwid, d=decwid,
+                                                    t=fmttyp) + '\n')

@@ -2,36 +2,55 @@
 """
 Command line script for plotting critical points on the potential energy
 surface.
+
+Input:
+    states: list of int. The state indices for states to be plotted.
+    infname: str. The filename of the input file, with each line containing
+        the geometry label followed by the state energies in increasing
+        order.
+    plotorder: list of int. The order in which to plot the geometries in
+        [infname].
+    gwid: float. The width of each geometry bar in the plot.
+    gsep: float. The separation between geometry bars in the plot.
+    lblrot: float. The rotation angle (in degrees) of geometry labels
+        in the plot.
+    maxener: float. The maximum energy (in converted units) for the plot.
+    minener: float. The minimum energy (in converted units) for the plot.
+    econv: float. The conversion factor with which energies are multiplied.
+    plot_name: str. The file name for the PES plot.
+    show_grid: boolean. Determines whether to show the energy grid lines.
+
+Output:
+    [plot_name]: A matplotlib-generated graphics file with the desired
+        potential energy surface plot.
 """
 import os
-import matplotlib.pyplot as plt
 from fmsinterpreter import fileio
 from fmsinterpreter import potentials
+from fmsinterpreter import default
+from fmsinterpreter import plot
 
 
 def main():
     """The main pesplot routine."""
     # read in the input file
-    inp = dict(states = None, infname = 'nrg.out', plotorder = None,
-               gwid = 1, gsep = 1, lblrot = 90, maxener = None,
-               mine = None, econv = 27.21138505, outfname = 'pes.pdf')
-    if os.path.exists('pes.inp'):
-        inp.update(fileio.read_cfg('pes.inp'))
+    inp = default.pesplot
+    fileio.cfg_update(inp, default.inpname['pesplot'])
 
     # read in the energy data
-    labels, energies = potentials.read_nrg(inp['infname'])
+    energies, labels = fileio.read_dat(inp['infname'], skipcol=1, labels='col')
 
     # reorder indices and convert energies
     labels, energies = potentials.conv_nrg(labels, energies,
                                            order=inp['plotorder'],
-                                           conv=inp['econv'], base=inp['mine'])
+                                           conv=inp['econv'],
+                                           base=inp['minener'])
 
     # plot the potential energy surface points
-    fig, axis = plt.subplots()
-    axis = potentials.plot_nrg(axis, labels, energies, wid=inp['gwid'],
-                               sep=inp['gsep'], rot=inp['lblrot'],
-                               maxe=inp['maxener'])
-    plt.savefig(inp['outfname'], bbox_inches='tight')
+    fig, ax = plot.energyplot(labels, energies, wid=inp['gwid'],
+                              sep=inp['gsep'], rot=inp['lblrot'],
+                              maxe=inp['maxener'], grid=inp['show_grid'])
+    plot.save(inp['plot_name'])
 
 
 if __name__ == '__main__':

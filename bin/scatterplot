@@ -1,0 +1,87 @@
+#!/usr/bin/python
+"""
+Command line script for making scatter plots of two internal coordinates.
+
+Input:
+    states: list of ints, length 2. Defines the initial and final states
+        for computing the branching ratio.
+    traj_files: str or list of str. The trajectory filenames used for
+        populations and geometries.
+    xcoord: str. The x coordinate type, as specified in gimbal.displacement
+        and gimbal.molecule.
+    ycoord: str. The y coordinate type, as specified in gimbal.displacement
+        and gimbal.molecule.
+    xinds: list of int. The atomic indices for the x coordinate.
+    yinds: list of int. The atomic indices for the y coordinate.
+    xunits: str. The x coordinate units as specified in gimbal.cons.
+    yunits: str. The y coordinate units as specified in gimbal.cons.
+    xlabel: str. The x coordinate label in the scatter plot.
+    ylabel: str. The y coordinate label in the scatter plot.
+    data_name: str. The filename of the output data file.
+    plot_name: str. The filename of the generated scatter plot.
+    pop_weight: bool. Determines whether or not to weight scatter points
+        by population.
+
+Output:
+    [data_name]: A raw-text file containing the coordinate values used
+        to plot each point in the plot.
+    [plot_name]: A matplotlib-generated graphics file with the desired
+        scatter plot.
+"""
+import numpy as np
+import gimbal.molecule as gm
+from fmsinterpreter import fileio
+from fmsinterpreter import default
+from fmsinterpreter import populations
+from fmsinterpreter import plot
+
+
+def main():
+    inp = default.scatterplot
+    fileio.cfg_update(inp, default.inpname['scatterplot'])
+
+    # get spawn filenames
+    fnames = fileio.get_fnames(inp['traj_files'])
+
+    traj_info = populations.read_tjinfo(fnames)
+    mask = populations.state_mask(traj_info, inp['states'])
+
+    if inp['pop_weight']:
+        # get populations
+        # it might be possible to avoid getting all populations, but with
+        # the integration method the parent data is also required
+        amps, times = populations.read_amps(fnames)
+        pops = populations.integ_spawn_pop(amps, times, traj_info)
+        pops = pops[mask]
+        pops[pops < 0] = 0
+        pops /= max(pops)
+
+    # import geometries
+    geom_fnames = [fn.replace('TrajDump','Spawn').replace('trajectory','spawn')
+                   for fn in fnames]
+    geom_fnames = np.array(geom_fnames)[mask]
+    all_geoms = gm.import_bundle(geom_fnames)
+
+    # get coordinates
+    x = all_geoms.get_coord(inp['xcoord'], inp['xinds'], units=inp['xunits'],
+                            absv=True)
+    y = all_geoms.get_coord(inp['ycoord'], inp['yinds'], units=inp['yunits'],
+                            absv=True)
+
+    # make a scatter plot and raw data file
+    if inp['pop_weight']:
+        output_data = np.vstack((x, y, pops)).T
+        lbls = [inp['xlabel'], inp['ylabel'], 'norm_population']
+        fig, ax = plot.scatter(x, y, xlabel=inp['xlabel'], ylabel=inp['ylabel'],
+                               transp=pops)
+    else:
+        output_data = np.vstack((x, y)).T
+        lbls = [inp['xlabel'], inp['ylabel']]
+        fig, ax = plot.scatter(x, y, xlabel=inp['xlabel'], ylabel=inp['ylabel'])
+
+    fileio.write_dat(inp['data_name'], output_data, labels=lbls)
+    plot.save(inp['plot_name'])
+
+
+if __name__ == '__main__':
+    main()

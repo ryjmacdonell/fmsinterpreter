@@ -1,0 +1,23 @@
+#!/usr/bin/env python
+"""
+Command line script for producing a given input file with the default values.
+"""
+from fmsinterpreter import default
+from sys import argv
+
+
+def main():
+    """The main getdefault routine."""
+    if len(argv) < 2:
+        raise TypeError('Include names of FMSinterpreter console scripts as '
+                        'argument variables to generate input files.')
+
+    for routine in argv[1:]:
+        try:
+            default.write_default(routine)
+        except KeyError:
+            print('UserWarning: \''+routine+'\' is not a valid script name.')
+
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,20 @@
+#!/usr/bin/python
+"""
+Command line script for plotting time-resolved photoelectron spectra from
+theoretical or experimental data.
+
+Input:
+
+Output:
+
+"""
+from fmsinterpreter import default
+
+
+def main():
+    inp = default.trpesplot
+    fileio.cfg_update(inp, default.inpname['trpesplot'])
+
+
+if __name__ == '__main__':
+    main()

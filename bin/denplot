@@ -1,1 +1,59 @@
 #!/usr/bin/python
+"""
+Command line script for plotting internal coordinate densities generated
+by mcdensity.f90.
+
+Input:
+    file_stub: The prefix for mcdensity files, followed by the time.
+    tinc: The time increment (as in mcdensity.inp).
+    tmin: The initial time (as in mcdensity.inp).
+    tmax: The final time (as in mcdensity.inp).
+    tunits: Time units, as recognizable by the constants module.
+    ncoord: The number of coordinate points (as in mcdensity.inp).
+    coordmin: The minimum coordinate value (as in mcdensity.inp).
+    coordmax: The maximum coordinate value (as in mcdensity.inp).
+    coordunits: The coordinate units.
+    coordlbl: The coordinate label for the plot.
+    data_name: The name of the output data file.
+    plot_name: The name of the output plot.
+
+Output:
+    [data_name]: The data used to generate the density heatmap.
+    [plot_name]: The heatmap plot of density as a function of
+        coordinate and time.
+"""
+import numpy as np
+import gimbal.constants as con
+from fmsinterpreter import default
+from fmsinterpreter import density
+from fmsinterpreter import fileio
+from fmsinterpreter import plot
+
+
+def main():
+    inp = default.denplot
+    fileio.cfg_update(inp, default.inpname['denplot'])
+
+    t, x, d = density.read_density(inp['file_stub'], inp['tinc'], inp['tmax'],
+                                  inp['ncoord'], inp['coordmax'],
+                                  tmin=inp['tmin'], cmin=inp['coordmin'])
+    t /= con.conv('au', inp['tunits'])
+    if inp['coordunits'] == 'ang':
+        x *= con.conv('bohr', 'ang')
+    else:
+        x *= con.conv('auto', inp['coordunits'])
+    ylbl = 'Time / ' + inp['tunits']
+
+    # write to a data file
+    fileio.write_dat(inp['data_name'], np.vstack((t, d.T)).T,
+                     labels=[ylbl.replace(' ','')] +
+                     ['{:10.4f}'.format(xi) for xi in x])
+
+
+    # plot the density
+    fig, ax = plot.heatmap(x, t, d, xlabel=inp['coordlbl'], ylabel=ylbl)
+    plot.save(inp['plot_name'], figure=fig)
+
+
+if __name__ == '__main__':
+    main()

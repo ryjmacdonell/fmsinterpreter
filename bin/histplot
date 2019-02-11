@@ -1,1 +1,19 @@
 #!/usr/bin/python
+"""
+Command line script for plotting histograms of data.
+
+Input:
+
+Output:
+
+"""
+from fmsinterpreter import default
+
+
+def main():
+    inp = default.histplot
+    fileio.cfg_update(inp, default.inpname['histplot'])
+
+
+if __name__ == '__main__':
+    main()

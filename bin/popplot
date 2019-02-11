@@ -1,38 +1,73 @@
 #!/usr/bin/env python
 """
 Command line script for getting and plotting adiabatic populations.
+
+Input:
+    states: list of int. The adiabatic state indices for states to plot.
+    fms_time_increment: float. The increment between data points in
+        unconverted units (i.e. a.u.). Must be larger than the FMS
+        minimum time increment.
+    time_conv: float. The conversion factor by which all times are
+        multiplied.
+    tmin: float. The minimum time used in the plot or fit.
+    tmax: float. The maximum time used in the plot or fit.
+    directory_stem: str or list of str. The seed directories used to
+        find the total number of seeds. Can use regular expressions
+        recognized by glob.
+    ndat_files: str or list of str. The data filenames containing
+        population information. Can use regular expressions recognized
+        by glob.
+    calc_err: boolean. Whether or not bootstrap errors should be
+        calculated and plotted/written to a file.
+    n_bootstrap: int. The maximum number of bootstrap iterations to be
+        performed in order to determine errors.
+    boot_thrsh: float. The smallest difference between mean and bootstrap
+        mean to achieve convergence.
+    amplitude_data_name: str. The filename for the amplitude vs. time
+        raw text data.
+    amplitude_err_name: str. The filename for the boostrap error vs.
+        time raw text data.
+    amplitude_plot_name: str. The filename for the amplitude plot.
+    fit_function: str. The name of the function used to fit the
+        amplitudes (exp, biexp, triexp).
+    p0: list of int. Initial guesses used for fitting (2 for exp, 6 for
+        biexp, 9 for triexp).
+    fit_data_name: str. The filename for raw-text information on the
+        fit parameters.
+    fit_plot_name: str. The filename for the fit plot and its corresponding
+        raw data.
+
+Output:
+    [amplitude_data_name]: The raw text data of total adiabatic amplitudes
+        vs. time.
+    [amplitude_err_name]: The raw text file containing bootstrap errors on
+        total adiabatic amplitudes vs. time.
+    [amplitude_plot_name]: A matplotlib-generated graphics file of the
+        desired population plot (only if amplitude_plot_name is not None).
+    [fit_data_name]: A raw text file of fit parameters (only if fit_function
+        is not None).
+    [fit_plot_name]: A matplot-generate graphics file of the fit population
+        plot and the raw data for comparison (only if both fit_function
+        and fit_plot_name are not None).
 """
 import os
 import numpy as np
-import matplotlib.pyplot as plt
 from fmsinterpreter import populations
 from fmsinterpreter import fileio
+from fmsinterpreter import default
+from fmsinterpreter import plot
 
 
 def main():
     """The main population plot routine."""
-    inp = dict(
-        states = [0, 1, 2],
-        fms_time_increment = 100,
-        time_conv = 0.02418884326505,
-        tmin = 0.0,
-        tmax = 1000.0,
-        directory_stem = '../seed.*',
-        trajectory_files = '../seed.*/TrajDump.*',
-        amplitude_data_name = 'pop.dat',
-        amplitude_plot_name = 'pop.pdf',
-        fit_function = None,
-        p0 = [10, 1, 50],
-        fit_data_name = 'pop.fit',
-        fit_plot_name = None
-               )
-    fileio.cfg_update(inp, 'pop.inp')
+    inp = default.popplot
+    fileio.cfg_update(inp, default.inpname['popplot'])
 
     # get number of seeds
     nseed = len(fileio.get_fnames(inp['directory_stem']))
 
-    # get trajectory filenames
-    traj_fnames = fileio.get_fnames(inp['trajectory_files'])
+    # get n.dat filenames
+    ndat_fnames = fileio.get_fnames(inp['ndat_files'])
 
     # set up time range
     time = np.arange(inp['tmin']/inp['time_conv'],
@@ -40,27 +75,58 @@ def main():
                      inp['fms_time_increment'])
 
     # read the amplitudes
-    amplitude = populations.read_amps(traj_fnames, time, inp['states']) / nseed
-    fileio.write_dat(inp['amplitude_data_name'], amplitude,
-                     labels=['Time/fs', 'S0', 'S1', 'S2'])
+    ns = max(inp['states']) + 1
+    amplitude = populations.total_amps(ndat_fnames, time, ns,
+                                       aconv=1./nseed)
+
+    # calculate bootstrap error
+    if inp['calc_err']:
+        #aerr = np.std(nseed*amplitude, axis=0)
+        avg, aerr = populations.error_amps(time, amplitude, ns,
+                                           nboot=inp['n_bootstrap'],
+                                           bthrsh=inp['boot_thrsh'])
+        aerrT = aerr.T
+    else:
+        aerrT = None
+    amplitude = np.sum(amplitude, axis=0)
+
+    # write to a data file
+    fileio.write_dat(inp['amplitude_data_name'],
+                     np.vstack((time * inp['time_conv'], amplitude)).T,
+                     labels=['Time/fs'] + ['S'+str(i) for i in inp['states']])
+    if inp['calc_err']:
+        fileio.write_dat(inp['amplitude_err_name'],
+                         np.vstack((time * inp['time_conv'], aerr)).T,
+                         labels=['Time/fs'] + ['S'+str(i) for i in inp['states']],
+                         fmttyp='e')
 
     # fit the amplitudes
     if inp['fit_function'] is not None:
         ff = inp['fit_function']
-        opt, err = populations.fit_function(ff, time, amplitude, inp['p0'],
-                                            time_conv=inp['time_conv'])
+        examp = 1 - amplitude[0]
+        examp = (examp - min(examp)) / (max(examp) - min(examp))
+        opt, err = populations.fit_function(ff, time, examp, inp['p0'],
+                                            tconv=inp['time_conv'])
         populations.write_fit(ff, opt, err, inp['fit_data_name'])
         if inp['fit_plot_name'] is not None:
-            figure, axis = plt.subplots()
-            axis = plot_fit(axis, ff, time, amplitude, opt)
-            plt.savefig(inp['fit_plot_name'], bbox_inches='tight')
+            t = time*inp['time_conv']
+            decay = np.array([examp, getattr(populations, ff)(t, *opt)])
+            fig, ax = plot.lineplot(t, decay.T, xlabel='Time / fs',
+                                    ylabel='1-S0 Amplitude',
+                                    xlim=(min(t), max(t)), ylim=(0,1),
+                                    legend=['raw data', ff+' fit'])
+            plot.save(inp['fit_plot_name'], figure=fig)
 
     # plot the amplitudes
     if inp['amplitude_plot_name'] is not None:
-        figure, axis = plt.subplots()
-        axis = populations.plot_amps(axis, time, amplitude, inp['states'],
-                                     time_conv=inp['time_conv'])
-        plt.savefig(inp['amplitude_plot_name'], bbox_inches='tight')
+        labels = ['$S_{:d}$'.format(i) for i in inp['states']]
+        fig, ax = plot.lineplot(time*inp['time_conv'], amplitude.T, err=aerrT,
+                                xlabel='Time / fs',
+                                ylabel='Adiabatic population',
+                                xlim='range', ylim=(0,1),
+                                legend=labels)
+        #ax.plot(time*inp['time_conv'], avg.T)
+        plot.save(inp['amplitude_plot_name'], figure=fig)
 
 
 if __name__ == '__main__':

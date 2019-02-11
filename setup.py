@@ -13,7 +13,7 @@ def readme():
 setup(
     name='fmsinterpreter',
     version='0.1',
-    description=('Tools for analysis of FMS90 and FMSpy output files'),
+    description=('Tools for analysis of FMS90 and nomad output files'),
     long_description=readme(),
     keywords='fmsinterpreter fms dynamics chemistry',
     url='https://github.com/ryjmacdonell/fmsinterpreter',
@@ -21,8 +21,18 @@ setup(
     author_email='rmacd054@uottawa.ca',
     license='MIT',
     packages=find_packages(),
-    scripts=['bin/branchget', 'bin/contourplot', 'bin/denplot',
-             'bin/pesplot', 'bin/plothist', 'bin/popplot'],
+    scripts=[
+        'bin/contourplot',
+        'bin/denplot',
+        'bin/geninput',
+        'bin/getdefault',
+        'bin/histplot',
+        'bin/pesplot',
+        'bin/popassign',
+        'bin/popplot',
+        'bin/scatterplot',
+        'bin/trpesplot'
+             ],
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Environment :: Console',
