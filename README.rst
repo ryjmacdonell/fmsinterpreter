@@ -1,7 +1,7 @@
 FMSinterpreter
 ==============
 
-Analysis and plotting scripts for FMS90 and FMSpy output files.
+Analysis and plotting scripts for FMS90 and nomad output files.
 
 Installation
 ------------
