@@ -31,5 +31,5 @@ where ``[module]`` is the module for the required task.
 
 Requirements
 ------------
-Requires the `GeomTools library <https://github.com/ryjmacdonell/geomtools>`_
-and at least Python 3.3, NumPy v1.6.0, SciPy v0.9.0
+Requires `Gimbal <https://github.com/ryjmacdonell/gimbal>`_ for
+certain features, and at least Python 3.3, NumPy v1.6.0, SciPy v0.9.0

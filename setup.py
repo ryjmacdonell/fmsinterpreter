@@ -22,7 +22,6 @@ setup(
     license='MIT',
     packages=find_packages(),
     scripts=[
-        'bin/branchget',
         'bin/contourplot',
         'bin/denplot',
         'bin/geninput',

@@ -7,14 +7,14 @@ Input:
         for computing the branching ratio.
     traj_files: str or list of str. The trajectory filenames used for
         populations and geometries.
-    xcoord: str. The x coordinate type, as specified in geomtools.displacement
-        and geomtools.molecule.
-    ycoord: str. The y coordinate type, as specified in geomtools.displacement
-        and geomtools.molecule.
+    xcoord: str. The x coordinate type, as specified in gimbal.displacement
+        and gimbal.molecule.
+    ycoord: str. The y coordinate type, as specified in gimbal.displacement
+        and gimbal.molecule.
     xinds: list of int. The atomic indices for the x coordinate.
     yinds: list of int. The atomic indices for the y coordinate.
-    xunits: str. The x coordinate units as specified in geomtools.cons.
-    yunits: str. The y coordinate units as specified in geomtools.cons.
+    xunits: str. The x coordinate units as specified in gimbal.cons.
+    yunits: str. The y coordinate units as specified in gimbal.cons.
     xlabel: str. The x coordinate label in the scatter plot.
     ylabel: str. The y coordinate label in the scatter plot.
     data_name: str. The filename of the output data file.
@@ -29,7 +29,7 @@ Output:
         scatter plot.
 """
 import numpy as np
-import geomtools.molecule as gm
+import gimbal.molecule as gm
 from fmsinterpreter import fileio
 from fmsinterpreter import default
 from fmsinterpreter import populations

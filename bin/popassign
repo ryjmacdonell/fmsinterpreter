@@ -31,7 +31,7 @@ Output:
 """
 import os
 import numpy as np
-import geomtools.molecule as gm
+import gimbal.molecule as gm
 from fmsinterpreter import fileio
 from fmsinterpreter import default
 from fmsinterpreter import populations

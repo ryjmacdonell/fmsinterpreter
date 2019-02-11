@@ -23,7 +23,7 @@ Output:
         coordinate and time.
 """
 import numpy as np
-from geomtools import constants as con
+import gimbal.constants as con
 from fmsinterpreter import default
 from fmsinterpreter import density
 from fmsinterpreter import fileio
