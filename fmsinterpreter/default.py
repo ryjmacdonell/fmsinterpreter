@@ -118,7 +118,7 @@ popplot = dict(
     amplitude_err_name = 'pop.err',
     amplitude_plot_name = 'pop.pdf',
     fit_function = None,
-    p0 = [10, 50],
+    p0 = [10, 50, 0.1],
     fit_data_name = 'pop.fit',
     fit_plot_name = None
                )
