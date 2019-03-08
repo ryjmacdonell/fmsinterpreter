@@ -76,12 +76,10 @@ def main():
 
     # read the amplitudes
     ns = max(inp['states']) + 1
-    amplitude = populations.total_amps(ndat_fnames, time, ns,
-                                       aconv=1./nseed)
+    amplitude = populations.total_amps(ndat_fnames, time, ns, aconv=1./nseed)
 
     # calculate bootstrap error
     if inp['calc_err']:
-        #aerr = np.std(nseed*amplitude, axis=0)
         avg, aerr = populations.error_amps(time, amplitude, ns,
                                            nboot=inp['n_bootstrap'],
                                            bthrsh=inp['boot_thrsh'])
@@ -104,9 +102,13 @@ def main():
     if inp['fit_function'] is not None:
         ff = inp['fit_function']
         examp = 1 - amplitude[0]
-        examp = (examp - min(examp)) / (max(examp) - min(examp))
+        if inp['calc_err']:
+            exerr = aerr[0]
+        else:
+            exerr = None
+
         opt, err = populations.fit_function(ff, time, examp, inp['p0'],
-                                            tconv=inp['time_conv'])
+                                            tconv=inp['time_conv'], err=exerr)
         populations.write_fit(ff, opt, err, inp['fit_data_name'])
         if inp['fit_plot_name'] is not None:
             t = time*inp['time_conv']

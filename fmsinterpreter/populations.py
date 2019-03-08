@@ -234,17 +234,24 @@ def thrsh_spawn_pop(amps, times, traj_info, inthrsh=5e-4, fithrsh=1e-4, nbuf=4):
     return pops
 
 
-def fit_function(func, times, decay, p0, tconv=1.):
+def fit_function(func, times, decay, p0, tconv=1., err=None, ethrsh=1e-5):
     """Fits amplitudes to a given exponential decay function.
 
     For now, this is just fitting the return to the ground state. With
     some sort of string parsing it could be changed to accept any
     state or combination of states (e.g. 'S1 + S2').
     """
-    #decay = 1 - amps[0]
-    #decay = (decay - min(decay)) / (max(decay) - min(decay))
+    if err is not None:
+        mask = err > ethrsh
+        err = err[mask]
+        times = times[mask]
+        decay = decay[mask]
+        abssig = True
+    else:
+        abssig = False
     t = times * tconv
-    popt, pcov = curve_fit(globals()[func], t, decay, p0=p0)
+    popt, pcov = curve_fit(globals()[func], t, decay, p0=p0, sigma=err,
+                           absolute_sigma=abssig)
     perr = np.sqrt(np.diag(pcov))
 
     return popt, perr
@@ -257,6 +264,8 @@ def write_fit(func, popt, perr, outfname):
     """
     if func == 'exp':
         fitvals = ['t0', 'tau1']
+    if func == 'expc':
+        fitvals = ['t0', 'tau1', 'c']
     elif func == 'biexp':
         fitvals = ['t0', 'amp1', 'tau1', 'amp2', 'tau2']
     elif func == 'triexp':
@@ -274,6 +283,12 @@ def write_fit(func, popt, perr, outfname):
 def exp(x, x0, b):
     """Returns an exponential function for curve fitting purposes."""
     return np.exp(-(x - x0) / b)
+
+
+def expc(x, x0, b, c):
+    """Returns an exponential function plus a constant for curve fitting
+    purposes."""
+    return np.exp(-(x - x0) / b) + c
 
 
 def biexp(x, x0, a1, b1, a2, b2):
