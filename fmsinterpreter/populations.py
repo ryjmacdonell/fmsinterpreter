@@ -234,7 +234,7 @@ def thrsh_spawn_pop(amps, times, traj_info, inthrsh=5e-4, fithrsh=1e-4, nbuf=4):
     return pops
 
 
-def fit_function(func, times, decay, p0, tconv=1., err=None):
+def fit_function(func, times, decay, p0, tconv=1., err=None, ethrsh=1e-5):
     """Fits amplitudes to a given exponential decay function.
 
     For now, this is just fitting the return to the ground state. With
@@ -242,7 +242,7 @@ def fit_function(func, times, decay, p0, tconv=1., err=None):
     state or combination of states (e.g. 'S1 + S2').
     """
     if err is not None:
-        mask = err > 1e-5
+        mask = err > ethrsh
         err = err[mask]
         times = times[mask]
         decay = decay[mask]
