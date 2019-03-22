@@ -109,7 +109,6 @@ popplot = dict(
     time_conv = 0.02418884326505,
     tmin = 0.0,
     tmax = 1000.0,
-    directory_stem = '../seed.*',
     ndat_files = '../seed.*/N.dat',
     calc_err = False,
     n_bootstrap = 100000,

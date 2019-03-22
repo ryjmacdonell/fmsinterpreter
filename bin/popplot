@@ -11,9 +11,6 @@ Input:
         multiplied.
     tmin: float. The minimum time used in the plot or fit.
     tmax: float. The maximum time used in the plot or fit.
-    directory_stem: str or list of str. The seed directories used to
-        find the total number of seeds. Can use regular expressions
-        recognized by glob.
     ndat_files: str or list of str. The data filenames containing
         population information. Can use regular expressions recognized
         by glob.
@@ -63,11 +60,9 @@ def main():
     inp = default.popplot
     fileio.cfg_update(inp, default.inpname['popplot'])
 
-    # get number of seeds
-    nseed = len(fileio.get_fnames(inp['directory_stem']))
-
-    # get n.dat filenames
+    # get n.dat filenames and number of seeds
     ndat_fnames = fileio.get_fnames(inp['ndat_files'])
+    nseed = len(ndat_fnames)
 
     # set up time range
     time = np.arange(inp['tmin']/inp['time_conv'],
