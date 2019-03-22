@@ -4,11 +4,14 @@ Module of all plotting routines used in FMSinterpreter.
 This should be a stand-alone module which handles all calls to
 Matplotlib. The Figure object can be used to handle multiple
 plots on single or multiple canvases.
+
+Note that just by importing this module, the default theme will be
+reset according to set_theme().
 """
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as col
 from cycler import cycler
-import customcolour.cmap as cm
 plt.rc('axes', axisbelow=True)
 plt.rc('legend', edgecolor='none')
 
@@ -27,6 +30,7 @@ def set_theme(color=['#2ca02c', '#1f77b4', '#d62728', '#9467bd', '#ff7f0e',
 
     For a black and white theme, use color='k'.
     """
+    # set custom default color/line/marker cycle
     def_order = ['color', 'linestyle', 'marker']
     if isinstance(order, str):
         def_order.remove(order)
@@ -40,6 +44,15 @@ def set_theme(color=['#2ca02c', '#1f77b4', '#d62728', '#9467bd', '#ff7f0e',
         cycler(order[1], locals()[order[1]]) *
         cycler(order[0], locals()[order[0]])
                                ))
+
+    # set custom default colormap
+    vir = plt.cm.get_cmap('viridis_r')
+    clisti = vir(np.linspace(0, 1, vir.N - 28))
+    clistn = np.array([np.linspace(1, clisti[0,i], 28) for i in range(4)]).T
+    clist = np.vstack((clistn, clisti))
+    wir = col.LinearSegmentedColormap.from_list('wiridis', clist)
+    plt.register_cmap(cmap=wir)
+    plt.rc('image', cmap='wiridis')
 
 
 def Figure(object):
@@ -173,7 +186,7 @@ def heatmap(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
             legend=None, **kwargs):
     """Plots a heatmap of z vs. x and y in a single frame."""
     fig, ax = plt.subplots()
-    ax.pcolormesh(x, y, z, rasterized=True, cmap=cm.wiridis, **kwargs)
+    ax.pcolormesh(x, y, z, rasterized=True, **kwargs)
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
     # should there be something for the cmap (z) range?
