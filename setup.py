@@ -26,6 +26,7 @@ setup(
         'bin/denplot',
         'bin/geninput',
         'bin/getdefault',
+        'bin/getgeoms',
         'bin/histplot',
         'bin/pesplot',
         'bin/popassign',

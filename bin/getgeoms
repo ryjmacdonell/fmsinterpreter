@@ -1,0 +1,87 @@
+#!/usr/bin/python
+"""
+Command line script for getting geometries in order to obtain
+time-dependent information
+
+Input:
+    seed_stub: str or list of str. The directory stub for seeds.
+    traj_stub: str. The file stub used for trajectory files.
+    spawn_log: str. The name of the Spawn.log file.
+    tinc: int. The time increment between geometries (in a.u.). The default
+        is to use all available geometries.
+    tmax: int. The maximum time (in a.u.).
+    elem: list of str. The atomic element labels which correspond to
+        the indices in trajectory files.
+    xyz_stub: str. The output filestub, labelled by seed.
+
+Output:
+    [xyz_stub][seed_label].xyz: XYZ format geometries.
+"""
+import numpy as np
+from fmsinterpreter import default
+from fmsinterpreter import fileio
+
+
+def main():
+    inp = default.getgeoms
+    fileio.cfg_update(inp, default.inpname['getgeoms'])
+
+    seeds = fileio.get_fnames(inp['seed_stub'] + '*')
+    seed_lbls = [s.replace(inp['seed_stub'], '') for s in seeds]
+    tbins = np.arange(0, inp['tmax']+0.5*inp['tinc'], inp['tinc'])
+
+    # time, traj id, state, last geom id, pop
+    fmt = '{:10.2f}{:5d}{:5.0f}{:5d}{:10.4f}'
+
+    for seed, lbl in zip(seeds, seed_lbls):
+        trajs = fileio.get_fnames('{:s}/{:s}*'.format(seed, inp['traj_stub']))
+        trajs.sort(key=fileio.natural_keys)
+        cid = []
+        pid = []
+        with open('{:s}/{:s}'.format(seed, inp['spawn_log']), 'r') as f:
+            for line in f.readlines():
+                if 'Entry' not in line:
+                    split = line.split()
+                    cid.append(int(split[3]))
+                    pid.append(int(split[5]))
+
+        igeom = 0
+        inds = dict()
+        with open('{:s}{:s}.xyz'.format(inp['xyz_stub'], lbl), 'w') as f:
+            igeom = 0
+            for tj in trajs:
+                tid = int(tj.split(inp['traj_stub'])[-1])
+                with open(tj, 'r') as tjf:
+                    rawdat = [l for l in tjf.readlines() if 'Time' not in l]
+
+                rawtime = np.array([l.split('.')[0] for l in rawdat], dtype=int)
+                i_i = np.argmin(np.abs(tbins - rawtime[0]))
+                i_f = np.argmin(np.abs(tbins - rawtime[-1]))
+                time = tbins[np.arange(i_i, i_f+1)]
+                dat = []
+                for t in time:
+                    dat.append(rawdat[np.argmin(np.abs(t - rawtime))])
+
+                # initial time
+                if tj == trajs[0]:
+                    parent = -1
+                else:
+                    parent = inds[str(pid[cid.index(tid)]) + '.' + str(time[0])]
+
+                dsp = dat[0].split()
+                comm = fmt.format(time[0], tid, float(dsp[-1]), parent, float(dsp[-2]))
+                fileio.traj_to_xyz(dat[0], f, elem=inp['elem'], comment=comm)
+                inds[str(tid) + '.' + str(time[0])] = igeom
+                igeom += 1
+
+                # later times
+                for t, d in zip(time[1:], dat[1:]):
+                    dsp = d.split()
+                    comm = fmt.format(t, tid, float(dsp[-1]), igeom-1, float(dsp[-2]))
+                    fileio.traj_to_xyz(d, f, elem=inp['elem'], comment=comm)
+                    inds[str(tid) + '.' + str(t)] = igeom
+                    igeom += 1
+
+
+if __name__ == '__main__':
+    main()

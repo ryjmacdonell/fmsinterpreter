@@ -3,6 +3,7 @@ Module for methods dealing with text input and output as well as
 general file management.
 """
 import os
+import re
 import numpy as np
 from glob import glob
 
@@ -27,7 +28,7 @@ def convert_str(string):
         try:
             return [[float(el) for el in ln] for ln in slist]
         except ValueError:
-            return slist
+            return [s.strip() for ln in slist for s in ln]
     elif ';' in string or ',' in string:
         # 1D list delimited by either ',' or ';'
         slist = string.replace(';',',').split(',')
@@ -38,7 +39,7 @@ def convert_str(string):
         try:
             return [float(el) for el in slist]
         except ValueError:
-            return slist
+            return [s.strip() for s in slist]
     else:
         # not a list, try int or float
         try:
@@ -48,7 +49,7 @@ def convert_str(string):
         try:
             return float(string)
         except ValueError:
-            return string
+            return string.strip()
 
 
 def read_cfg(fname, reqvars=[]):
@@ -96,6 +97,25 @@ def get_fnames(matchex):
         fnames += glob(matchex)
 
     return fnames
+
+
+def natural_keys(s):
+    """Used to sort list of strings by natural numbers."""
+    return [int(c) if c.isdigit() else c for c in re.split('(\d+)', s)]
+
+
+def traj_to_xyz(string, outfile, elem=None, comment=''):
+    """Takes a line from a TrajDump file and converts it to an
+    XYZ format."""
+    line = np.array(string.split(), dtype=float)
+    natm = len(line) // 6 - 1
+    if elem is None:
+        elem = np.array(['X'] * natm)
+
+    xyz = line[1:3*natm+1].reshape(natm, 3) * 0.52917721
+    outfile.write(' {:d}\n{:s}\n'.format(natm, comment))
+    for atm, xyzi in zip(elem, xyz):
+        outfile.write('{:4s}{:12.6f}{:12.6f}{:12.6f}\n'.format(atm, *xyzi))
 
 
 def read_dat(fname, dtype=float, skiprow=0, skipcol=0, labels=None,
