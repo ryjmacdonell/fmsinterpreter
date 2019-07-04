@@ -85,6 +85,23 @@ scatterplot = dict(
                    )
 
 trpesplot = dict(
+    seed_files = 'output/seed.*',
+    tinc = 100,
+    eprobe = 6.199,
+    eunits = 'ev',
+    tunits = 'fs',
+    emin = 0,
+    emax = 5,
+    tmin = -200,
+    tmax = 800,
+    esig = 0.100,
+    tsig = 42.4,
+    calc_err = False,
+    n_bootstrap = 10000,
+    boot_thrsh = 1e-3,
+    data_name = 'trpes.dat',
+    err_name = 'trpes.err',
+    plot_name = 'trpes.pdf'
                  )
 
 pesplot = dict(

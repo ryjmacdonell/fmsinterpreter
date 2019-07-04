@@ -4,16 +4,91 @@ Command line script for plotting time-resolved photoelectron spectra from
 theoretical or experimental data.
 
 Input:
+    seed_files: str or list of str. The location of files with format:
+        time  traj  pop  DeltaE0  Dys0  DeltaE1  Dys1 ...
+    tinc: int or float. The time increment in au (set by getgeoms).
+    eunits: str. The units of energy, eV by default.
+    tunits: str. The units of time, femtoseconds by default.
+    eprobe: float. The probe energy in eunits.
+    emin: float. The minimum energy of the plot in eunits.
+    emax: float. The maximum energy of the plot in eunits.
+    tmin: float. The minimum time of the plot in tunits.
+    tmax: float. The maximum time of the plot in tunits.
+    esig: float. The energy Gaussian convolution sigma in eunits.
+    tsig: float. The time Gaussian convolution sigma in tunits.
+    calc_err: bool. Whether the bootstrap error should be calculated
+    n_bootstrap: int. Maximum number of boostrap iterations.
+    boot_thrsh: float. The minimum intensity difference for bootstrapping.
+    data_name: str. Name of a 2D data file for outputs.
+    err_name: str. Name of a 2D data file for boostrap errors.
+    plot_name: str. Name of the output plot.
 
 Output:
-
+    [data_name]: The data file containing intensities for all amplitudes
+        and times.
+    [err_name]: The bootstrap error for intensities at all amplitudes
+        and times. Only written if calc_err = True.
+    [plot_name]: The TRPES plot.
 """
+import numpy as np
+from scipy.ndimage.filters import gaussian_filter
 from fmsinterpreter import default
+from fmsinterpreter import fileio
+from fmsinterpreter import plot
 
 
 def main():
     inp = default.trpesplot
     fileio.cfg_update(inp, default.inpname['trpesplot'])
+
+    au2fs = 0.02418843
+
+    fnames = fileio.get_fnames(inp['seed_files'])
+    nseed = len(fnames)
+
+    ebins = np.linspace(inp['emin'] - 3*inp['esig'],
+                        inp['emax'] + 3*inp['esig'], 500) # set number of bins? Convert to eV?
+    tbins = np.arange(inp['tinc']*round((inp['tmin'] - 3*inp['tsig'])/(au2fs*inp['tinc'])),
+                      (inp['tmax'] + 3*inp['tsig'])/au2fs + inp['tinc'],
+                      inp['tinc']) - inp['tinc'] // 2
+    sigma = (inp['tsig']/(au2fs*(tbins[1]-tbins[0])),
+             inp['esig']/(ebins[1]-ebins[0]))
+    spec = np.empty((nseed, len(tbins)-1, len(ebins)-1))
+
+    for i, fn in enumerate(fnames):
+        rawdat = np.genfromtxt(fn).T
+        nd = (len(rawdat) - 3) // 2
+        times = np.tile(rawdat[0], nd)
+        energies = rawdat[3::2].flatten()
+        wgts = (rawdat[2] * rawdat[4::2]).flatten()
+
+        stick = np.histogram2d(times, inp['eprobe'] - energies,
+                               bins=(tbins, ebins), weights=wgts)[0]
+        spec[i] = gaussian_filter(stick, sigma=sigma)
+
+    if inp['calc_err']:
+        print('Bootstrap error not yet implemented')
+
+    total_spec = np.average(spec, axis=0)
+    ecent = (ebins[1:] + ebins[:-1]) / 2
+    tcent = (tbins[1:] + tbins[:-1]) / 2
+    ecent, tcent = np.meshgrid(ecent, tcent)
+    mask = np.logical_and(np.logical_and(ecent > inp['emin'], ecent < inp['emax']),
+                          np.logical_and(tcent > inp['tmin'], tcent < inp['tmax']))
+    scale = np.max(total_spec[mask])
+    total_spec /= scale
+
+    if inp['data_name'] is not None:
+        pass
+
+    if inp['plot_name'] is not None:
+        kwargs = dict(xlabel='Kinetic Energy / eV', ylabel='Time / fs',
+                      xlim=(inp['emin'], inp['emax']),
+                      ylim=(inp['tmin'], inp['tmax']))
+        fig, ax = plot.heatmap(ebins, tbins*au2fs, total_spec, **kwargs,
+                               vmin=0, vmax=1)
+
+    plot.save(inp['plot_name'])
 
 
 if __name__ == '__main__':
