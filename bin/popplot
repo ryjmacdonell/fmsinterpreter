@@ -71,17 +71,17 @@ def main():
 
     # read the amplitudes
     ns = max(inp['states']) + 1
-    amplitude = populations.total_amps(ndat_fnames, time, ns, aconv=1./nseed)
+    amplitude = populations.total_amps(ndat_fnames, time, ns)
 
     # calculate bootstrap error
     if inp['calc_err']:
-        avg, aerr = populations.error_amps(time, amplitude, ns,
-                                           nboot=inp['n_bootstrap'],
-                                           bthrsh=inp['boot_thrsh'])
+        amplitude, aerr = populations.error_amps(time, amplitude,
+                                                 nboot=inp['n_bootstrap'],
+                                                 bthrsh=inp['boot_thrsh'])
         aerrT = aerr.T
     else:
+        amplitude = np.average(amplitude, axis=0)
         aerrT = None
-    amplitude = np.sum(amplitude, axis=0)
 
     # write to a data file
     fileio.write_dat(inp['amplitude_data_name'],

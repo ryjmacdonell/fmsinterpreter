@@ -12,6 +12,7 @@ import os
 inpname = dict(
     contourplot = 'contour.inp',
     denplot = 'den.inp',
+    getgeoms = 'geoms.inp',
     histplot = 'hist.inp',
     scatterplot = 'scatter.inp',
     trpesplot = 'trpes.inp',
@@ -54,6 +55,16 @@ denplot = dict(
     plot_name = 'den.pdf'
                )
 
+getgeoms = dict(
+    seed_stub = '../seed.',
+    traj_stub = 'TrajDump.',
+    spawn_log = 'Spawn.log',
+    tinc = 100,
+    tmax = 48000,
+    elem = None,
+    xyz_stub = 'geoms.'
+                )
+
 histplot = dict(
                 )
 
@@ -67,13 +78,32 @@ scatterplot = dict(
     xunits = 'auto',
     yunits = 'auto',
     xlabel = 'x',
-    ylabel='y',
+    ylabel = 'y',
     data_name = 'scatter.dat',
     plot_name = 'scatter.pdf',
     pop_weight = False
                    )
 
 trpesplot = dict(
+    seed_files = 'output/seed.*',
+    tinc = 100,
+    nebins = 150,
+    eprobe = 6.199,
+    eunits = 'ev',
+    tunits = 'fs',
+    emin = 0,
+    emax = 5,
+    tmin = -200,
+    tmax = 800,
+    esig = 0.100,
+    tsig = 42.4,
+    calc_err = False,
+    n_bootstrap = 10000,
+    boot_thrsh = 1e-3,
+    data_name = 'trpes.dat',
+    err_name = 'trpes.err',
+    plot_name = 'trpes.pdf',
+    err_plot_name = 'trpes_err.pdf'
                  )
 
 pesplot = dict(

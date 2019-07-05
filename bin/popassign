@@ -62,7 +62,7 @@ def main():
     spawnf = [f.replace('TrajDump', 'Spawn').replace('trajectory','spawn') for
               f in fnames]
     bund = gm.import_bundle(spawnf, hascom=True)
-    for i in range(bund.get_nmol()):
+    for i in range(bund.nmol):
         bund.molecules[i].comment += ' pop {:10.6f}'.format(pops[i])
 
     # create/clean the output directory
@@ -84,17 +84,18 @@ def main():
         ref_bund = gm.import_bundle(ref_fnames)
         if inp['mass_wgt']:
             wgt = bund.molecules[0].get_mass()
-            matched = bund.match_to_ref(ref_bund, plist=inp['permute'],
-                                        equiv=inp['symm_equiv'], wgt=wgt)
+            inds = bund.match_to_ref(ref_bund, plist=inp['permute'],
+                                     equiv=inp['symm_equiv'], wgt=wgt)
         else:
-            matched = bund.match_to_ref(ref_bund, plist=inp['permute'],
-                                        equiv=inp['symm_equiv'])
+            inds = bund.match_to_ref(ref_bund, plist=inp['permute'],
+                                     equiv=inp['symm_equiv'])
         b_pop = np.zeros(nref)
-        for i, b in enumerate(matched):
-            if b.get_nmol() > 0:
+        for i in range(nref):
+            b = gm.MoleculeBundle(bund.molecules[inds == i])
+            if b.nmol > 0:
                 b.write(inp['dir_name']+'/'+refnames[i])
-                b_pop[i] = np.sum([float(mol.get_comment().split()[-1]) for mol
-                                   in b.get_molecules()])
+                b_pop[i] = np.sum([float(mol.comment.split()[-1]) for mol
+                                   in b.molecules])
         if inp['pop_fname'] is not None:
             fn = inp['dir_name'] + '/' + inp['pop_fname']
             total_pop = np.sum(pops)
