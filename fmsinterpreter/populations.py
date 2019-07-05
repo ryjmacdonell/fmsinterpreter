@@ -52,7 +52,7 @@ def total_amps(fnames, times, nstates, aconv=1.):
     return stamps
 
 
-def error_amps(times, stamps, nstates, nboot=1000, bthrsh=1e-3):
+def error_amps(times, stamps, nboot=1000, bthrsh=1e-3):
     """Calculates the amplitude errors using the bootstrap method.
 
     A random set of seeds are sampled until the bootstrap average
@@ -61,17 +61,21 @@ def error_amps(times, stamps, nstates, nboot=1000, bthrsh=1e-3):
     """
     nseed = len(stamps)
     bootsamp = np.random.randint(nseed, size=(nboot, nseed))
-    tavg = np.sum(stamps, axis=0)
-    bavg = np.sum(stamps[bootsamp[0]], axis=0)
+    tavg = np.average(stamps, axis=0)
+    bavg = np.average(stamps[bootsamp[0]], axis=0)
     bdel = np.zeros_like(stamps[0])
     for i in range(1, nboot):
-        bstamp = np.sum(stamps[bootsamp[i]], axis=0)
+        bstamp = np.average(stamps[bootsamp[i]], axis=0)
         ei = bstamp - bavg
         bavg += ei / (i + 1)
         bdel += ei * (bstamp - bavg)
         if np.all(np.abs(bavg - tavg) < bthrsh):
             break
-    print(i+1)
+    print('n_boot = {:d}'.format(i+1))
+    if i+1 == nboot:
+        print('Warning: bootstrap not converged.')
+        print('max absolute error = '
+              '{:7.4e}'.format(np.max(np.abs(bavg - tavg))))
     return bavg, np.sqrt(bdel / i)
 
 

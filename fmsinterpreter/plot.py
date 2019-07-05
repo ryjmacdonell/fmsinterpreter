@@ -93,6 +93,14 @@ def Figure(object):
         ax.setp(cs.collections[1::2], alpha=0.5)
         ax.clabel(cs, cs.levels[::2], inline=1, fmt=r'%.2f')
 
+    def contourf(self, x, y, z, isub=(0,0), **kwargs):
+        """Plots a filled countour plot of z vs. x and y in the subplot
+        position isub."""
+        lvls = np.linspace(np.min(z), np.max(z), 150)
+        ax = self.axarr[isub[0], isub[1]]
+        ax.contourf(x, y, z, levels=lvls, zorder=-9, **kwargs)
+        ax.set_rasterization_zorder(-1)
+
     def set_xlabel(self, label, isub=None):
         """Sets the x-axis label on subplot(s) in position isub. If no isub
         is given, the label is set for all subplots."""
@@ -182,14 +190,27 @@ def contour(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
     return fig, ax
 
 
+def contourf(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
+             legend=None, **kwargs):
+    """Plots a filled countour plot of z vs. x and y in a single frame."""
+    fig, ax = plt.subplots()
+    lvls = np.linspace(np.min(z), np.max(z), 150)
+    l1 = ax.contourf(x, y, z, levels=lvls, zorder=-9, **kwargs)
+    ax.set_rasterization_zorder(-1)
+
+    _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
+    fig.colorbar(l1)
+    return fig, ax
+
+
 def heatmap(x, y, z, xlabel='x', ylabel='y', xlim=None, ylim=None,
             legend=None, **kwargs):
     """Plots a heatmap of z vs. x and y in a single frame."""
     fig, ax = plt.subplots()
-    ax.pcolormesh(x, y, z, rasterized=True, **kwargs)
+    l1 = ax.pcolormesh(x, y, z, rasterized=True, **kwargs)
 
     _ax_set(ax, xlabel, ylabel, _get_lim(x,xlim), _get_lim(y,ylim), legend)
-    # should there be something for the cmap (z) range?
+    fig.colorbar(l1)
     return fig, ax
 
 
