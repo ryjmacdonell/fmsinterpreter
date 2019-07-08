@@ -52,7 +52,7 @@ def total_amps(fnames, times, nstates, aconv=1.):
     return stamps
 
 
-def error_amps(times, stamps, nboot=1000, bthrsh=1e-3):
+def error_amps(stamps, nboot=1000, bthrsh=1e-3):
     """Calculates the amplitude errors using the bootstrap method.
 
     A random set of seeds are sampled until the bootstrap average

@@ -75,7 +75,7 @@ def main():
 
     # calculate bootstrap error
     if inp['calc_err']:
-        amplitude, aerr = populations.error_amps(time, amplitude,
+        amplitude, aerr = populations.error_amps(amplitude,
                                                  nboot=inp['n_bootstrap'],
                                                  bthrsh=inp['boot_thrsh'])
         aerrT = aerr.T

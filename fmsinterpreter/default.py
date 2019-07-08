@@ -97,6 +97,7 @@ trpesplot = dict(
     tmax = 800,
     esig = 0.100,
     tsig = 42.4,
+    dyson_norms = True,
     calc_err = False,
     n_bootstrap = 10000,
     boot_thrsh = 1e-3,

@@ -15,6 +15,8 @@ Input:
     tmax: float. The maximum time of the plot in fs.
     esig: float. The energy Gaussian convolution sigma in eV.
     tsig: float. The time Gaussian convolution sigma in fs.
+    dyson_norms: bool. Whether spectral intensities are weighted by Dyson
+        orbital norms.
     calc_err: bool. Whether the bootstrap error should be calculated
     n_bootstrap: int. Maximum number of bootstrap iterations.
     boot_thrsh: float. The minimum intensity difference for bootstrapping.
@@ -54,9 +56,9 @@ def main():
     tbins = np.arange(tstrt, (inp['tmax'] + 3*inp['tsig'])/au2fs + inp['tinc'],
                       inp['tinc']) - inp['tinc'] // 2
     ecent = (ebins[1:] + ebins[:-1]) / 2
-    tcent = (tbins[1:] + tbins[:-1]) / 2
-    sigma = (inp['tsig']/(au2fs*(tbins[1]-tbins[0])),
-             inp['esig']/(ebins[1]-ebins[0]))
+    tcent = au2fs*(tbins[1:] + tbins[:-1]) / 2
+    sigma = (inp['tsig'] / (au2fs*(tbins[1]-tbins[0])),
+             inp['esig'] / (ebins[1]-ebins[0]))
     spec = np.empty((nseed, len(tbins)-1, len(ebins)-1))
 
     for i, fn in enumerate(fnames):
@@ -64,42 +66,47 @@ def main():
         nd = (len(rawdat) - 3) // 2
         times = np.tile(rawdat[0], nd)
         energies = rawdat[3::2].flatten()
-        wgts = (rawdat[2] * rawdat[4::2]).flatten()
+        if inp['dyson_norms']:
+            wgts = (rawdat[2] * rawdat[4::2]).flatten()
+        else:
+            wgts = np.tile(rawdat[2], nd)
 
         stick = np.histogram2d(times, inp['eprobe'] - energies,
                                bins=(tbins, ebins), weights=wgts)[0]
         spec[i] = gaussian_filter(stick, sigma=sigma)
 
-    emask = np.logical_and(ecent > inp['emin'], ecent < inp['emax'])
-    tmask = np.logical_and(tcent > inp['tmin'], tcent < inp['tmax'])
     total_spec = np.average(spec, axis=0)
+    emask = np.logical_and(ecent >= inp['emin'], ecent <= inp['emax'])
+    tmask = np.logical_and(tcent >= inp['tmin'], tcent <= inp['tmax'])
     scale = np.max(total_spec[np.ix_(tmask, emask)])
     total_spec /= scale
-    spec /= scale
     kwargs = dict(xlabel='Kinetic Energy / eV', ylabel='Time / fs',
                   xlim=(inp['emin'], inp['emax']),
                   ylim=(inp['tmin'], inp['tmax']))
     header = np.hstack((0, ecent))
 
     if inp['calc_err']:
-        total_spec, total_err = populations.error_amps(tcent, spec,
+        spec /= scale
+        total_spec, total_err = populations.error_amps(spec,
                                                        nboot=inp['n_bootstrap'],
                                                        bthrsh=inp['boot_thrsh'])
 
-        data = np.vstack((tcent*au2fs, 100*total_err.T)).T
+        data = np.vstack((tcent, 100*total_err.T)).T
         fileio.write_dat(inp['err_name'], np.vstack((header, data)),
                          charwid=10)
         if inp['err_plot_name'] is not None:
-            fig, ax = plot.contourf(ecent, tcent*au2fs, total_err, **kwargs)
+            vmax = np.max(total_err[np.ix_(tmask, emask)])
+            total_err[total_err > vmax] = 0
+            fig, ax = plot.contourf(ecent, tcent, total_err, **kwargs)
             plot.save(inp['err_plot_name'])
 
-    data = np.vstack((tcent*au2fs, 100*total_spec.T)).T
+    data = np.vstack((tcent, 100*total_spec.T)).T
     fileio.write_dat(inp['data_name'], np.vstack((header, data)),
                      charwid=10)
 
     if inp['plot_name'] is not None:
-        #fig, ax = plot.heatmap(ebins, tbins*au2fs, total_spec, **kwargs)
-        fig, ax = plot.contourf(ecent, tcent*au2fs, total_spec, **kwargs)
+        #fig, ax = plot.heatmap(ebins, tbins, total_spec, **kwargs)
+        fig, ax = plot.contourf(ecent, tcent, total_spec, **kwargs)
         plot.save(inp['plot_name'])
 
 
