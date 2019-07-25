@@ -14,7 +14,7 @@ Input:
     ndat_files: str or list of str. The data filenames containing
         population information. Can use regular expressions recognized
         by glob.
-    calc_err: boolean. Whether or not bootstrap errors should be
+    calc_err: bool. Whether or not bootstrap errors should be
         calculated and plotted/written to a file.
     n_bootstrap: int. The maximum number of bootstrap iterations to be
         performed in order to determine errors.
@@ -24,28 +24,27 @@ Input:
         raw text data.
     amplitude_err_name: str. The filename for the boostrap error vs.
         time raw text data.
-    amplitude_plot_name: str. The filename for the amplitude plot.
+    plot_name: str. The filename for the amplitude plot.
     fit_function: str. The name of the function used to fit the
         amplitudes (exp, biexp, triexp).
     p0: list of int. Initial guesses used for fitting (2 for exp, 6 for
         biexp, 9 for triexp).
+    err_thrsh: float. The minimum error value for fitting, used to avoid
+        over-fitting zero error points.
     fit_data_name: str. The filename for raw-text information on the
         fit parameters.
-    fit_plot_name: str. The filename for the fit plot and its corresponding
-        raw data.
+    plot_fit: bool. Whether or not the fit function will be plotted with
+        the amplitudes.
 
 Output:
     [amplitude_data_name]: The raw text data of total adiabatic amplitudes
         vs. time.
     [amplitude_err_name]: The raw text file containing bootstrap errors on
         total adiabatic amplitudes vs. time.
-    [amplitude_plot_name]: A matplotlib-generated graphics file of the
-        desired population plot (only if amplitude_plot_name is not None).
+    [plot_name]: A matplotlib-generated graphics file of the desired
+        population plot (only if plot_name is not None).
     [fit_data_name]: A raw text file of fit parameters (only if fit_function
         is not None).
-    [fit_plot_name]: A matplot-generate graphics file of the fit population
-        plot and the raw data for comparison (only if both fit_function
-        and fit_plot_name are not None).
 """
 import os
 import numpy as np
@@ -84,46 +83,36 @@ def main():
         aerrT = None
 
     # write to a data file
-    fileio.write_dat(inp['amplitude_data_name'],
-                     np.vstack((time * inp['time_conv'], amplitude)).T,
+    t = time * inp['time_conv']
+    fileio.write_dat(inp['amplitude_data_name'], np.vstack((t, amplitude)).T,
                      labels=['Time/fs'] + ['S'+str(i) for i in inp['states']])
     if inp['calc_err']:
-        fileio.write_dat(inp['amplitude_err_name'],
-                         np.vstack((time * inp['time_conv'], aerr)).T,
+        fileio.write_dat(inp['amplitude_err_name'], np.vstack((t, aerr)).T,
                          labels=['Time/fs'] + ['S'+str(i) for i in inp['states']],
                          fmttyp='e')
 
     # fit the amplitudes
     if inp['fit_function'] is not None:
-        ff = inp['fit_function']
-        examp = 1 - amplitude[0]
+        ff = populations.import_func(inp['fit_function'])
+        kwargs = dict(ethrsh = inp['err_thrsh'])
         if inp['calc_err']:
-            exerr = aerr[0]
-        else:
-            exerr = None
+            kwargs['err'] = aerr
 
-        opt, err = populations.fit_function(ff, time, examp, inp['p0'],
-                                            tconv=inp['time_conv'], err=exerr)
-        populations.write_fit(ff, opt, err, inp['fit_data_name'])
-        if inp['fit_plot_name'] is not None:
-            t = time*inp['time_conv']
-            decay = np.array([examp, getattr(populations, ff)(t, *opt)])
-            fig, ax = plot.lineplot(t, decay.T, xlabel='Time / fs',
-                                    ylabel='1-S0 Amplitude',
-                                    xlim=(min(t), max(t)), ylim=(0,1),
-                                    legend=['raw data', ff+' fit'])
-            plot.save(inp['fit_plot_name'], figure=fig)
+        opt, err = populations.fit_function(ff, t, amplitude, inp['p0'], **kwargs)
+        populations.write_fit(inp['fit_function'], opt, err, inp['fit_data_name'])
 
     # plot the amplitudes
-    if inp['amplitude_plot_name'] is not None:
+    if inp['plot_name'] is not None:
         labels = ['$S_{:d}$'.format(i) for i in inp['states']]
-        fig, ax = plot.lineplot(time*inp['time_conv'], amplitude.T, err=aerrT,
-                                xlabel='Time / fs',
+        fig, ax = plot.lineplot(t, amplitude.T, err=aerrT, xlabel='Time / fs',
                                 ylabel='Adiabatic population',
-                                xlim='range', ylim=(0,1),
-                                legend=labels)
-        #ax.plot(time*inp['time_conv'], avg.T)
-        plot.save(inp['amplitude_plot_name'], figure=fig)
+                                xlim='range', ylim=(0,1), legend=labels)
+        # plot the fit functions for comparison
+        if inp['fit_function'] is not None and inp['plot_fit']:
+            ax.set_prop_cycle(None)
+            ax.plot(t, ff(t, *opt).T, linestyle='--')
+
+        plot.save(inp['plot_name'], figure=fig)
 
 
 if __name__ == '__main__':

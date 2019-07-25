@@ -48,8 +48,8 @@ def set_theme(color=['#2ca02c', '#1f77b4', '#d62728', '#9467bd', '#ff7f0e',
     # set custom default colormap
     vir = plt.cm.get_cmap('viridis_r')
     clisti = vir(np.linspace(0, 1, vir.N - 28))
-    clistn = np.array([np.linspace(1, clisti[0,i], 28) for i in range(4)]).T
-    clist = np.vstack((clistn, clisti))
+    clistn = np.array([np.linspace(1, clisti[0,i], 29) for i in range(4)]).T
+    clist = np.vstack((clistn[:-1], clisti))
     wir = col.LinearSegmentedColormap.from_list('wiridis', clist)
     plt.register_cmap(cmap=wir)
     plt.rc('image', cmap='wiridis')

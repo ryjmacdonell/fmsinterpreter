@@ -146,11 +146,12 @@ popplot = dict(
     boot_thrsh = 1e-3,
     amplitude_data_name = 'pop.dat',
     amplitude_err_name = 'pop.err',
-    amplitude_plot_name = 'pop.pdf',
+    plot_name = 'pop.pdf',
     fit_function = None,
     p0 = [10, 50, 0.1],
+    err_thrsh = 1e-5,
     fit_data_name = 'pop.fit',
-    fit_plot_name = None
+    plot_fit = True
                )
 
 

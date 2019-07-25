@@ -6,6 +6,7 @@ import os
 import numpy as np
 from scipy.optimize import curve_fit
 from fmsinterpreter import fileio
+from fmsinterpreter import fitting
 
 
 def read_amps(fnames, aconv=1.):
@@ -238,69 +239,64 @@ def thrsh_spawn_pop(amps, times, traj_info, inthrsh=5e-4, fithrsh=1e-4, nbuf=4):
     return pops
 
 
-def fit_function(func, times, decay, p0, tconv=1., err=None, ethrsh=1e-5):
+def import_func(funcname):
+    """Returns a fitting function from the function name."""
+    if 'delay_' in funcname:
+        basename = funcname.replace('delay_', '')
+        return fitting.add_delay(getattr(fitting, basename))
+    else:
+        return getattr(fitting, funcname)
+
+
+def fit_function(func, times, amps, p0, err=None, ethrsh=1e-5):
     """Fits amplitudes to a given exponential decay function.
 
     For now, this is just fitting the return to the ground state. With
     some sort of string parsing it could be changed to accept any
     state or combination of states (e.g. 'S1 + S2').
     """
-    if err is not None:
-        mask = err > ethrsh
-        err = err[mask]
-        times = times[mask]
-        decay = decay[mask]
-        abssig = True
-    else:
-        abssig = False
-    t = times * tconv
-    popt, pcov = curve_fit(globals()[func], t, decay, p0=p0, sigma=err,
-                           absolute_sigma=abssig)
-    perr = np.sqrt(np.diag(pcov))
+    abssig = err is not None
+    if not abssig:
+        fit_err = None
 
+    nr = len(func(0, *p0))
+    t = np.tile(times, nr)
+
+    if len(amps) == nr:
+        fit_amps = amps.ravel()
+        if abssig:
+            fit_err = err.ravel() + ethrsh
+    elif len(amps) > nr:
+        # combine amplitudes for highest states
+        if nr == 1:
+            fit_amps = amps[0]
+            if abssig:
+                fit_err = err[0] + ethrsh
+        else:
+            fit_amps = np.vstack((amps[:nr-1], np.sum(amps[nr-1:], axis=0))).ravel()
+            if abssig:
+                fit_err = np.vstack((err[:nr-1], np.sqrt(np.sum(err[nr-1:]**2, axis=0))))
+                fit_err = fit_err.ravel() + ethrsh
+    else:
+        raise ValueError('less states in amplitudes than in fitting function')
+
+    popt, pcov = curve_fit(fitting.ravelf(func), t, fit_amps,
+                           p0=p0, sigma=fit_err, absolute_sigma=abssig)
+    perr = np.sqrt(np.diag(pcov))
     return popt, perr
 
 
-def write_fit(func, popt, perr, outfname):
+def write_fit(funcname, popt, perr, outfname):
     """Writes fit information to an output file.
 
     This should be generalized to accept more than one set of fit values.
     """
-    if func == 'exp':
-        fitvals = ['t0', 'tau1']
-    if func == 'expc':
-        fitvals = ['t0', 'tau1', 'c']
-    elif func == 'biexp':
-        fitvals = ['t0', 'amp1', 'tau1', 'amp2', 'tau2']
-    elif func == 'triexp':
-        fitvals = ['t0', 'amp1', 'tau1', 'amp2', 'tau2', 'amp3', 'tau3']
+    lbls = fitting.get_labels(funcname)
 
     with open(outfname, 'w') as f:
-        f.write('Curve  ')
-        f.write(''.join(['{:>10s}'.format(fv) for fv in fitvals]) + '\n')
-        f.write('1-S0   ')
-        f.write(''.join(['{:10.4f}'.format(p) for p in popt]) + '\n')
+        f.write('       ')
+        f.write(''.join(['{:>12s}'.format(fv) for fv in lbls]) + '\n')
+        f.write('Fit    ')
+        f.write(''.join(['{:12.4e}'.format(p) for p in popt]) + '\n')
         f.write('Error  ')
-        f.write(''.join(['{:10.4f}'.format(p) for p in perr]) + '\n')
-
-
-def exp(x, x0, b):
-    """Returns an exponential function for curve fitting purposes."""
-    return np.exp(-(x - x0) / b)
-
-
-def expc(x, x0, b, c):
-    """Returns an exponential function plus a constant for curve fitting
-    purposes."""
-    return np.exp(-(x - x0) / b) + c
-
-
-def biexp(x, x0, a1, b1, a2, b2):
-    """Returns a biexponential function for curve fitting purposes."""
-    return a1 * np.exp(-(x - x0) / b1) + a2 * np.exp(-(x - x0) / b2)
-
-
-def triexp(x, x0, a1, b1, a2, b2, a3, b3):
-    """Returns a triexponential function for curve fitting purposes."""
-    return (a1 * np.exp(-(x - x0) / b1) + a2 * np.exp(-(x - x0) / b2) +
-            a3 * np.exp(-(x - x0) / b3))
+        f.write(''.join(['{:12.4e}'.format(p) for p in perr]) + '\n')
