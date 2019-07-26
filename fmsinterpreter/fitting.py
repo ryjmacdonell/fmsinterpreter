@@ -2,8 +2,8 @@
 Library of functions for fitting populations curves.
 
 All fits assume the final 'state' is unpopulated in the beginning,
-and the sum of populations of other 'states' is unity. The returned
-functions are nstates x ntimes (always 2D, even if nstates == 1).
+and the sum of populations of other 'states' is unity. The functions
+return an array of size nstates x ntimes (always 2D, even if nstates == 1).
 
               k1   k1
 Sequential: A -> B -> ...
@@ -11,6 +11,9 @@ Sequential: A -> B -> ...
                k1    k2
 Equilibria: A <=> B <=> ...
               k-1   k-2
+
+Deriving these equations involves solving systems of ODEs. For a concise
+review, see https://pubs.acs.org/doi/abs/10.1021/ed076p1578
 """
 import numpy as np
 

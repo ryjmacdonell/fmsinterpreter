@@ -26,7 +26,9 @@ Input:
         time raw text data.
     plot_name: str. The filename for the amplitude plot.
     fit_function: str. The name of the function used to fit the
-        amplitudes (exp, biexp, triexp).
+        amplitudes. If the number of adiabatic states is greater than
+        the number of fit states, the highest state populations are treated
+        as a sum. See the fitting module for allowed function names.
     p0: list of int. Initial guesses used for fitting (2 for exp, 6 for
         biexp, 9 for triexp).
     err_thrsh: float. The minimum error value for fitting, used to avoid
@@ -42,7 +44,8 @@ Output:
     [amplitude_err_name]: The raw text file containing bootstrap errors on
         total adiabatic amplitudes vs. time.
     [plot_name]: A matplotlib-generated graphics file of the desired
-        population plot (only if plot_name is not None).
+        population plot (only if fit_function is not None and
+        plot_name is True).
     [fit_data_name]: A raw text file of fit parameters (only if fit_function
         is not None).
 """
