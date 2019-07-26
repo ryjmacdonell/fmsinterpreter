@@ -251,9 +251,11 @@ def import_func(funcname):
 def fit_function(func, times, amps, p0, err=None, ethrsh=1e-5):
     """Fits amplitudes to a given exponential decay function.
 
-    For now, this is just fitting the return to the ground state. With
-    some sort of string parsing it could be changed to accept any
-    state or combination of states (e.g. 'S1 + S2').
+    The type of fit depends on the function specified. If a 'single_'
+    function is used, only the ground state is fit. For any larger function,
+    if the number of adiabatic states is greater than the number of fit
+    states, the highest adiabatic state populations are summed for the
+    fit.
     """
     abssig = err is not None
     if not abssig:
