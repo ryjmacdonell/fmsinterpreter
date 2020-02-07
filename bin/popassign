@@ -7,6 +7,7 @@ Input:
     traj_files: str or list of str. The spawn filenames used for
         populations and geometries.
     spawn_fname: the name of the outputted spawn geometry file
+    first_lbl: the index of the first trajectory (1 for FMS90, 0 for nomad).
     states: list of int, len 2. Defines the initial and final states
         for computing the branching ratio.
     ref_geoms: str or list of str. Gives the filenames of reference
@@ -45,7 +46,7 @@ def main():
     fnames = fileio.get_fnames(inp['traj_files'])
 
     # get traj data and populations
-    traj_info = populations.read_tjinfo(fnames)
+    traj_info = populations.read_tjinfo(fnames, first_lbl=inp['first_lbl'])
     amps, times = populations.read_amps(fnames)
     if inp['states'] is None:
         pops, mask = populations.integ_spawn_pop(amps, times, traj_info)

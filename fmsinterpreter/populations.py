@@ -80,12 +80,13 @@ def error_amps(stamps, nboot=1000, bthrsh=1e-3):
     return bavg, np.sqrt(bdel / i)
 
 
-def read_tjinfo(fnames, noparent=False):
+def read_tjinfo(fnames, first_lbl=1, noparent=False):
     """Reads the trajectory information for all files and returns
     an array."""
     tjinfo = np.empty((len(fnames), 5), dtype=int)
     for i, fname in enumerate(fnames):
-        tjinfo[i] = get_spawn_info(fname, noparent=noparent)
+        tjinfo[i] = get_spawn_info(fname, first_lbl=first_lbl,
+                                   noparent=noparent)
 
     return tjinfo
 

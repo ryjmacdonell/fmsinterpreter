@@ -97,10 +97,10 @@ def triple_1steq(x, a0, tau1, taum1, tau2):
     c = k1*k2
     g1 = 0.5*(s + np.sqrt(s**2 - 4*c))
     g2 = 0.5*(s - np.sqrt(s**2 - 4*c))
-    abc[2] = ((a0*(g1 - km1 - k2) - (1-a0)*km1)/(g1 - g2) * np.exp(-g1*x) -
-              (a0*(g2 - km1 - k2) - (1-a0)*km1)/(g1 - g2) * np.exp(-g2*x))
-    abc[1] = ((-a0*k1 + (1-a0)*(g1 - k1))/(g1 - g2) * np.exp(-g1*x) -
-              (-a0*k1 + (1-a0)*(g2 - k1))/(g1 - g2) * np.exp(-g2*x))
+    abc[2] = ((a0*(g1 - km1 - k2) - (1-a0)*km1)/(g1 - g2) * np.exp(-g1*x) +
+              (a0*(g2 - km1 - k2) - (1-a0)*km1)/(g2 - g1) * np.exp(-g2*x))
+    abc[1] = ((-a0*k1 + (1-a0)*(g1 - k1))/(g1 - g2) * np.exp(-g1*x) +
+              (-a0*k1 + (1-a0)*(g2 - k1))/(g2 - g1) * np.exp(-g2*x))
     abc[0] = 1 - abc[2] - abc[1]
     return abc
 
@@ -115,9 +115,9 @@ def triple_2ndeq(x, a0, tau1, tau2, taum2):
     g2 = 0.5*(s - np.sqrt(s**2 - 4*c))
     abc[2] = a0*np.exp(-x/tau1)
     abc[1] = ((a0*k1*(km2 - g1) +
-               (1-a0)*(g1 - k1)*(g1 - km2))/(g1*(g1 - g2)) * np.exp(-g1*x) -
+               (1-a0)*(g1 - k1)*(g1 - km2))/(g1*(g1 - g2)) * np.exp(-g1*x) +
               (a0*k1*(km2 - g2) +
-               (1-a0)*(g2 - k1)*(g2 - km2))/(g2*(g1 - g2)) * np.exp(-g2*x) +
+               (1-a0)*(g2 - k1)*(g2 - km2))/(g2*(g2 - g1)) * np.exp(-g2*x) +
               k1*km2/(g1*g2))
     abc[0] = 1 - abc[2] - abc[1]
     return abc
@@ -132,14 +132,14 @@ def triple_alleq(x, a0, tau1, taum1, tau2, taum2):
     g1 = 0.5*(s + np.sqrt(s**2 - 4*c))
     g2 = 0.5*(s - np.sqrt(s**2 - 4*c))
     abc[2] = ((a0*k1*(g1 - k2 - km2) +
-               (1-a0)*km1*(km2 - g1))/(g1*(g1 - g2)) * np.exp(-g1*x) -
+               (1-a0)*km1*(km2 - g1))/(g1*(g1 - g2)) * np.exp(-g1*x) +
               (a0*k1*(g2 - k2 - km2) +
-               (1-a0)*km1*(km2 - g2))/(g2*(g1 - g2)) * np.exp(-g2*x) +
+               (1-a0)*km1*(km2 - g2))/(g2*(g2 - g1)) * np.exp(-g2*x) +
               km1*km2/(g1*g2))
     abc[1] = ((a0*k1*(km2 - g1) +
-               (1-a0)*(g1 - k1)*(g1 - km2))/(g1*(g1 - g2)) * np.exp(-g1*x) -
+               (1-a0)*(g1 - k1)*(g1 - km2))/(g1*(g1 - g2)) * np.exp(-g1*x) +
               (a0*k1*(km2 - g2) +
-               (1-a0)*(g2 - k1)*(g2 - km2))/(g2*(g1 - g2)) * np.exp(-g2*x) +
+               (1-a0)*(g2 - k1)*(g2 - km2))/(g2*(g2 - g1)) * np.exp(-g2*x) +
               k1*km2/(g1*g2))
     abc[0] = 1 - abc[2] - abc[1]
     return abc
@@ -148,7 +148,7 @@ def triple_alleq(x, a0, tau1, taum1, tau2, taum2):
 def add_delay(func):
     """Returns a decay function with a time delay."""
     def delayed(x, x0, *args):
-        xp = x - x0
+        xp = np.atleast_1d(x) - x0
         if np.all(xp < 0):
             abc = func(0, *args)
         else:
