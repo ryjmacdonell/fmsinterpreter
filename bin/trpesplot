@@ -16,8 +16,10 @@ Input:
     esig: float. The energy Gaussian convolution sigma in eV.
     tsig: float. The time Gaussian convolution sigma in fs.
     dyson_norms: bool. Whether spectral intensities are weighted by Dyson
-        orbital norms.
-    calc_err: bool. Whether the bootstrap error should be calculated
+        orbital norms. Default is True.
+    renorm_spec: bool. Whether the maximum of the spectrum is normalized
+        to unity. Default is True.
+    calc_err: bool. Whether the bootstrap error should be calculated.
     n_bootstrap: int. Maximum number of bootstrap iterations.
     boot_thrsh: float. The minimum intensity difference for bootstrapping.
     data_name: str. Name of a 2D data file for outputs.
@@ -78,7 +80,12 @@ def main():
     total_spec = np.average(spec, axis=0)
     emask = np.logical_and(ecent >= inp['emin'], ecent <= inp['emax'])
     tmask = np.logical_and(tcent >= inp['tmin'], tcent <= inp['tmax'])
-    scale = np.max(total_spec[np.ix_(tmask, emask)])
+    if inp['renorm_spec']:
+        scale = np.max(total_spec[np.ix_(tmask, emask)])
+        print('Renormalizing spectrum with max = {:.4e}'.format(scale))
+    else:
+        scale = 1
+
     total_spec /= scale
     kwargs = dict(xlabel='Kinetic Energy / eV', ylabel='Time / fs',
                   xlim=(inp['emin'], inp['emax']),
@@ -106,7 +113,7 @@ def main():
 
     if inp['plot_name'] is not None:
         #fig, ax = plot.heatmap(ebins, tbins, total_spec, **kwargs)
-        fig, ax = plot.contourf(ecent, tcent, total_spec, **kwargs)
+        fig, ax = plot.contourf(ecent, tcent, total_spec, vmax=1, **kwargs)
         plot.save(inp['plot_name'])
 
 
