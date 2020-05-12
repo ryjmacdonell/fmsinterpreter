@@ -113,7 +113,7 @@ def main():
 
     if inp['plot_name'] is not None:
         #fig, ax = plot.heatmap(ebins, tbins, total_spec, **kwargs)
-        fig, ax = plot.contourf(ecent, tcent, total_spec, **kwargs)
+        fig, ax = plot.contourf(ecent, tcent, total_spec, vmax=1, **kwargs)
         plot.save(inp['plot_name'])
 
 
